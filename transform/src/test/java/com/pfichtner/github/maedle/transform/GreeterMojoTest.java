@@ -4,12 +4,11 @@ import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOut;
 import static com.pfichtner.github.maedle.transform.TransformMojo.transformedMojoInstance;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.constructor;
+import static com.pfichtner.github.maedle.transform.util.ClassUtils.packageName;
 import static java.util.Arrays.stream;
-import static java.util.Collections.emptyList;
 import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toList;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -45,10 +44,8 @@ public class GreeterMojoTest {
 //	reportTask.onlyIf { !project.hasProperty('skipReports') }
 
 	// TODO error/failure
-//     * @throws MojoExecutionException if an unexpected problem occurs.
-//     * Throwing this exception causes a "BUILD ERROR" message to be displayed.
-//     * @throws MojoFailureException if an expected problem (such as a compilation failure) occurs.
-//     * Throwing this exception causes a "BUILD FAILURE" message to be displayed.
+//     * @throws MojoExecutionException -> catched exception, wrap it using MojoExecutionException 
+//     * @throws MojoFailureException if the build should be broken by the plugin itself
 
 	// TODO MyMojo extends AbstractMojo works, what about MyMojo extends
 	// MyAbstractMojo, MyAbstractMojo extends AbstractMojo
@@ -56,7 +53,7 @@ public class GreeterMojoTest {
 	@Test
 	void worksForNonMojoClasses() throws Exception {
 		GreeterMojo heapWatchMojo = new GreeterMojo();
-		Object transformedMojoInstance = TransformMojo.transformedMojoInstance(heapWatchMojo);
+		Object transformedMojoInstance = transformedMojoInstance(heapWatchMojo);
 		Class<?> extensionClass = extensionClassOf(transformedMojoInstance);
 //		
 		ClassWriter classWriter = new ClassWriter(0);
@@ -64,7 +61,7 @@ public class GreeterMojoTest {
 		new ClassReader(asStream(GreeterMojoTest.class)).accept(mojoToGradleTransformer, 0);
 //		new ClassReader(asStream(extensionClass)).accept(mojoToGradleTransformer, 0);
 
-		assertFalse(mojoToGradleTransformer.isMojo());
+		assertThat(mojoToGradleTransformer.isMojo()).isFalse();
 //		assertEquals(bytes, classWriter3.toByteArray());
 	}
 
@@ -86,16 +83,29 @@ public class GreeterMojoTest {
 	}
 
 	@Test
+	void exceptionsIsMapped() throws Exception {
+		GreeterMojo heapWatchMojo = new GreeterMojo();
+		heapWatchMojo.greeter = null;
+		Object transformedMojoInstance = transformedMojoInstance(heapWatchMojo);
+		Throwable e1 = getExceptionThrown(() -> executeMojo(heapWatchMojo));
+		Throwable e2 = getExceptionThrown(() -> executeMojo(transformedMojoInstance));
+
+		assertThat(e1.getMessage()).isEqualTo(e2.getMessage());
+		assertThat(packageName(e1)).startsWith("org.apache.maven");
+		assertThat(packageName(e2)).doesNotStartWith("org.apache.maven");
+	}
+
+	@Test
 	void verifyExtensionClassHasNoMethods() throws Exception {
 		Class<?> extensionClass = extensionClassOf(transformedMojoInstance(new GreeterMojo()));
-		assertEquals(emptyList(), stream(extensionClass.getDeclaredMethods()).map(Method::getName).collect(toList()));
+		assertThat(stream(extensionClass.getDeclaredMethods()).map(Method::getName)).isEmpty();
 	}
 
 	@Test
 	void verifyExtensionClassFieldsHaveNoMavenAnnotations() throws Exception {
 		Class<?> extensionClass = extensionClassOf(transformedMojoInstance(new GreeterMojo()));
-		assertEquals(emptyList(), stream(extensionClass.getDeclaredFields()).map(f -> stream(f.getAnnotations()))
-				.flatMap(identity()).collect(toList()));
+		assertThat(stream(extensionClass.getDeclaredFields()).map(f -> stream(f.getAnnotations())).flatMap(identity()))
+				.isEmpty();
 	}
 
 	private Class<?> extensionClassOf(Object transformedMojoInstance) {
@@ -113,7 +123,11 @@ public class GreeterMojoTest {
 	}
 
 	private static void haveSameSysouts(Statement statement1, Statement statement2) throws Exception {
-		assertEquals(tapSystemOut(statement1), tapSystemOut(statement2));
+		assertThat(tapSystemOut(statement1)).isEqualTo(tapSystemOut(statement2));
+	}
+
+	private static Throwable getExceptionThrown(Statement statement) {
+		return assertThrows(InvocationTargetException.class, () -> statement.execute()).getTargetException();
 	}
 
 }

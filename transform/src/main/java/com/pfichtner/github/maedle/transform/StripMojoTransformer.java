@@ -1,5 +1,8 @@
 package com.pfichtner.github.maedle.transform;
 
+import static com.pfichtner.github.maedle.transform.Constants.MAVEN_MOJO_EXECUTION_EXCEPTION;
+import static com.pfichtner.github.maedle.transform.Constants.MAVEN_MOJO_FAILURE_EXCEPTION;
+import static com.pfichtner.github.maedle.transform.Constants.isMavenException;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.withInstructions;
 import static com.pfichtner.github.maedle.transform.util.CollectionUtil.nonNull;
 import static java.util.Collections.emptyMap;
@@ -20,6 +23,8 @@ import java.util.Map;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.commons.ClassRemapper;
+import org.objectweb.asm.commons.Remapper;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.FieldNode;
@@ -66,7 +71,7 @@ public class StripMojoTransformer extends ClassNode {
 	public void accept(ClassVisitor classVisitor) {
 		if (classHasMojoAnno) {
 			mojoAnnotationValues = this.invisibleAnnotations.stream()
-					.filter(n -> Constants.mojoAnnotation.equals(Type.getType(n.desc))).findFirst()
+					.filter(n -> Constants.MOJO_ANNOTATION.equals(Type.getType(n.desc))).findFirst()
 					.map(n -> AsmUtil.toMap(n)).orElse(emptyMap());
 			superName = "java/lang/Object";
 			List<FieldNode> fieldsToRemove = fields.stream().filter(f -> nonNull(f.invisibleAnnotations).stream()
@@ -89,12 +94,12 @@ public class StripMojoTransformer extends ClassNode {
 			methods.forEach(this::changeFieldOwner);
 			methods.forEach(m -> m.exceptions = filterMavenExceptions(m.exceptions));
 		}
-		super.accept(classVisitor);
+		super.accept(mapMavenExceptions(classVisitor));
 	}
 
 	@Override
 	public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-		classHasMojoAnno = Constants.mojoAnnotation.equals(Type.getType(descriptor));
+		classHasMojoAnno = Constants.MOJO_ANNOTATION.equals(Type.getType(descriptor));
 		return super.visitAnnotation(descriptor, visible);
 	}
 
@@ -116,8 +121,24 @@ public class StripMojoTransformer extends ClassNode {
 		});
 	}
 
+	private ClassRemapper mapMavenExceptions(ClassVisitor classVisitor) {
+		return new ClassRemapper(classVisitor, new Remapper() {
+			@Override
+			public String map(String internalName) {
+				// TODO is there a gradle exception type we can map to?
+				if (MAVEN_MOJO_FAILURE_EXCEPTION.equals(internalName)) {
+					return "java/lang/RuntimeException";
+				} else if (MAVEN_MOJO_EXECUTION_EXCEPTION.equals(internalName)) {
+					return "java/lang/RuntimeException";
+				} else {
+					return internalName;
+				}
+			}
+		});
+	}
+
 	private List<String> filterMavenExceptions(List<String> exceptions) {
-		return exceptions.stream().filter(t -> !t.startsWith("org/apache/maven/plugin/")).collect(toList());
+		return exceptions.stream().filter(t -> !isMavenException(t)).collect(toList());
 	}
 
 	private MethodNode extensionClassConstructor() {

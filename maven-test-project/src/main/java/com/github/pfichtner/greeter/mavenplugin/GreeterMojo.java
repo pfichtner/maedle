@@ -2,6 +2,7 @@ package com.github.pfichtner.greeter.mavenplugin;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
@@ -24,7 +25,13 @@ public class GreeterMojo extends AbstractMojo {
 //		return message;
 //	}
 
-	public void execute() throws MojoExecutionException {
+	public void execute() throws MojoExecutionException, MojoFailureException {
+		if (greeter == null) {
+			throw new MojoFailureException("greeter must not be null");
+		}
+		if (message == null) {
+			throw new MojoFailureException("message must not be null");
+		}
 		System.out.println("Hello, " + greeter);
 		System.out.println("I have a message for You: " + message);
 	}

@@ -59,8 +59,8 @@ public class PluginWriter {
 			ClassVisitor cw2 = new ClassVisitor(ASM9, cw) {
 
 				Class<?> plugin = MaedlePluginTemplate.class;
-				Field extensionField = plugin.getDeclaredField("EXTENSION");
-				Field taskField = plugin.getDeclaredField("TASK");
+				Field extensionField = plugin.getDeclaredField("E_NAME");
+				Field taskField = plugin.getDeclaredField("T_NAME");
 
 				@Override
 				public FieldVisitor visitField(int access, String name, String descriptor, String signature,

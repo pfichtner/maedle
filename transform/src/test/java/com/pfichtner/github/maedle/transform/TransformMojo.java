@@ -6,13 +6,7 @@ import static org.objectweb.asm.ClassReader.EXPAND_FRAMES;
 import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
 import static org.objectweb.asm.ClassWriter.COMPUTE_MAXS;
 
-import java.io.File;
 import java.io.PrintWriter;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.stream.Stream;
 
 import org.apache.maven.plugin.Mojo;
 import org.objectweb.asm.ClassReader;
@@ -34,8 +28,7 @@ public class TransformMojo {
 	public static Object transformedMojoInstance(Mojo originalMojo) throws Exception {
 		String extensionClassName = (originalMojo.getClass().getName() + "GradlePluginExtension").replace('.', '/');
 
-		AsmClassLoader asmClassLoader = new AsmClassLoader(
-				new URLClassLoader(urls(), Thread.currentThread().getContextClassLoader()));
+		AsmClassLoader asmClassLoader = new AsmClassLoader(Thread.currentThread().getContextClassLoader());
 
 		ClassWriter classWriter;
 		classWriter = new ClassWriter(COMPUTE_MAXS | COMPUTE_FRAMES);
@@ -59,26 +52,6 @@ public class TransformMojo {
 
 	private static Class<?> loadClass(AsmClassLoader asmClassLoader, ClassWriter classWriter, String string) {
 		return asmClassLoader.defineClass(classWriter.toByteArray(), string.replace('/', '.'));
-	}
-
-	private static URL[] urls() throws MalformedURLException {
-		//TODO fix me
-		String base = "/home/xck10h6/.m2/repository/";
-		return Stream.of( //
-//				"org/gradle/gradle-core/5.6.4/gradle-core-5.6.4.jar" //
-				"org/gradle/gradle-core-api/5.6.4/gradle-core-api-5.6.4.jar" //
-//				"org/gradle/gradle-logging/5.6.4/gradle-logging-5.6.4.jar", //
-//				"org/codehaus/groovy/groovy/2.5.14/groovy-2.5.14.jar", //
-//				"org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar" //
-		).map(base::concat).map(File::new).map(File::toURI).map(TransformMojo::toURL).toArray(URL[]::new);
-	}
-
-	private static URL toURL(URI uri) {
-		try {
-			return uri.toURL();
-		} catch (MalformedURLException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 }
