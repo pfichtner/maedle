@@ -25,8 +25,4 @@ public final class ClassUtils {
 				.orElseThrow(() -> new IllegalStateException("no constructor " + predicate));
 	}
 
-	public static String packageName(Object object) {
-		return object.getClass().getPackage().getName();
-	}
-
 }

@@ -4,15 +4,16 @@ import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOut;
 import static com.pfichtner.github.maedle.transform.TransformMojo.transformedMojoInstance;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.constructor;
-import static com.pfichtner.github.maedle.transform.util.ClassUtils.packageName;
 import static java.util.Arrays.stream;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import org.apache.maven.plugin.MojoFailureException;
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -89,10 +90,10 @@ public class GreeterMojoTest {
 		Object transformedMojoInstance = transformedMojoInstance(heapWatchMojo);
 		Throwable e1 = getExceptionThrown(() -> executeMojo(heapWatchMojo));
 		Throwable e2 = getExceptionThrown(() -> executeMojo(transformedMojoInstance));
-
-		assertThat(e1.getMessage()).isEqualTo(e2.getMessage());
-		assertThat(packageName(e1)).startsWith("org.apache.maven");
-		assertThat((e2.getClass())).isEqualTo(TaskExecutionException.class);
+		assertAll( //
+				() -> assertThat(e1).hasMessage(e2.getMessage()).isInstanceOf(MojoFailureException.class), //
+				() -> assertThat(e2).hasMessage(e1.getMessage()).isInstanceOf(TaskExecutionException.class) //
+		);
 	}
 
 	@Test
