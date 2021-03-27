@@ -4,13 +4,7 @@ import static com.pfichtner.github.maedle.transform.PluginWriter.createPlugin;
 import static com.pfichtner.github.maedle.transform.TransformMojo.transformedMojoInstance;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.constructor;
 
-import java.io.File;
 import java.lang.reflect.Method;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.Type;
@@ -47,7 +41,7 @@ public class GreeterMojoIT {
 		GreeterMojo greeterMojo = new GreeterMojo();
 		Object transformedMojoInstance = transformedMojoInstance(greeterMojo);
 
-		AsmClassLoader asmClassLoader = new AsmClassLoader(new URLClassLoader(urls(), transformedMojoInstance.getClass().getClassLoader()));
+		AsmClassLoader asmClassLoader = new AsmClassLoader(transformedMojoInstance.getClass().getClassLoader());
 
 		String extensionType = Type.getInternalName(typeOfSingleArgConstructor(transformedMojoInstance));
 		String mojoType = Type.getInternalName(transformedMojoInstance.getClass());
@@ -68,25 +62,6 @@ public class GreeterMojoIT {
 	private Class<?> typeOfSingleArgConstructor(Object transformedMojoInstance) {
 		return constructor(transformedMojoInstance.getClass(), c -> c.getParameterCount() == 1).getParameters()[0]
 				.getType();
-	}
-
-	private URL[] urls() throws MalformedURLException {
-		String base = "/home/xck10h6/.m2/repository/";
-		return Stream.of( //
-//				"org/gradle/gradle-core/5.6.4/gradle-core-5.6.4.jar" //
-				"org/gradle/gradle-core-api/5.6.4/gradle-core-api-5.6.4.jar" //
-//				"org/gradle/gradle-logging/5.6.4/gradle-logging-5.6.4.jar", //
-//				"org/codehaus/groovy/groovy/2.5.14/groovy-2.5.14.jar", //
-//				"org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar" //
-		).map(base::concat).map(File::new).map(File::toURI).map(GreeterMojoIT::toURL).toArray(URL[]::new);
-	}
-
-	private static URL toURL(URI uri) {
-		try {
-			return uri.toURL();
-		} catch (MalformedURLException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 }
