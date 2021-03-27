@@ -1,10 +1,10 @@
 package com.pfichtner.github.maedle;
 
-public class TransformedMojo {
+public class M {
 
-	private TransformedExtension extension;
+	private E extension;
 
-	public TransformedMojo(TransformedExtension extension) {
+	public M(E extension) {
 		this.extension = extension;
 	}
 

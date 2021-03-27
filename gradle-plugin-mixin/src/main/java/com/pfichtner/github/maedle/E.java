@@ -1,5 +1,5 @@
 package com.pfichtner.github.maedle;
 
-public class TransformedExtension {
+public class E {
 	public String greeter, message;
 }
