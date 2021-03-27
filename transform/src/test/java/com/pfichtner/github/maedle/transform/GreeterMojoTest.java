@@ -6,6 +6,7 @@ import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.constructor;
 import static java.util.Arrays.stream;
 import static java.util.Collections.emptyList;
+import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -56,7 +57,7 @@ public class GreeterMojoTest {
 	void worksForNonMojoClasses() throws Exception {
 		GreeterMojo heapWatchMojo = new GreeterMojo();
 		Object transformedMojoInstance = TransformMojo.transformedMojoInstance(heapWatchMojo);
-		Class<?> extensionClass = typeOfSingleArgConstructor(transformedMojoInstance);
+		Class<?> extensionClass = extensionClassOf(transformedMojoInstance);
 //		
 		ClassWriter classWriter = new ClassWriter(0);
 		StripMojoTransformer mojoToGradleTransformer = new StripMojoTransformer(classWriter, extensionClass.getName());
@@ -86,8 +87,19 @@ public class GreeterMojoTest {
 
 	@Test
 	void verifyExtensionClassHasNoMethods() throws Exception {
-		Class<?> extensionClass = typeOfSingleArgConstructor(transformedMojoInstance(new GreeterMojo()));
+		Class<?> extensionClass = extensionClassOf(transformedMojoInstance(new GreeterMojo()));
 		assertEquals(emptyList(), stream(extensionClass.getDeclaredMethods()).map(Method::getName).collect(toList()));
+	}
+
+	@Test
+	void verifyExtensionClassFieldsHaveNoMavenAnnotations() throws Exception {
+		Class<?> extensionClass = extensionClassOf(transformedMojoInstance(new GreeterMojo()));
+		assertEquals(emptyList(), stream(extensionClass.getDeclaredFields()).map(f -> stream(f.getAnnotations()))
+				.flatMap(identity()).collect(toList()));
+	}
+
+	private Class<?> extensionClassOf(Object transformedMojoInstance) {
+		return typeOfSingleArgConstructor(transformedMojoInstance);
 	}
 
 	private Class<?> typeOfSingleArgConstructor(Object transformedMojoInstance) {
