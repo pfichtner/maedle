@@ -27,6 +27,7 @@ import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
+// TODO replace by mixin: Project with deps to gradle, place the class written by the plugin and remap to the right mojo
 public class PluginWriter {
 
 	public static byte[] createPlugin(String pluginClass, String extensionClass, String mojoClass, String taskName,
