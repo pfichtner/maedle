@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 
-import com.github.pfichtner.heapwatch.mavenplugin.GreeterMojo;
+import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
 import com.github.stefanbirkner.systemlambda.Statement;
 
 public class GreeterMojoTest {

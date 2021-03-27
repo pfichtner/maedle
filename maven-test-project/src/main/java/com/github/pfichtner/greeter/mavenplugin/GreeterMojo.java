@@ -1,4 +1,4 @@
-package com.github.pfichtner.heapwatch.mavenplugin;
+package com.github.pfichtner.greeter.mavenplugin;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;

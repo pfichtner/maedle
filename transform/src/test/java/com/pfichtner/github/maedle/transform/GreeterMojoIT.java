@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.Type;
 
-import com.github.pfichtner.heapwatch.mavenplugin.GreeterMojo;
+import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
 
 public class GreeterMojoIT {
 
@@ -44,15 +44,15 @@ public class GreeterMojoIT {
 	// TODO this should be done in a gradle project with the usage of testkit
 	void canTransformHeapWatchMojo() throws Exception {
 		// TODO Do not forget to write META-INF! ;-)
-		GreeterMojo heapWatchMojo = new GreeterMojo();
-		Object transformedMojoInstance = transformedMojoInstance(heapWatchMojo);
+		GreeterMojo greeterMojo = new GreeterMojo();
+		Object transformedMojoInstance = transformedMojoInstance(greeterMojo);
 
 		AsmClassLoader asmClassLoader = new AsmClassLoader(new URLClassLoader(urls(), transformedMojoInstance.getClass().getClassLoader()));
 
 		String extensionType = Type.getInternalName(typeOfSingleArgConstructor(transformedMojoInstance));
 		String mojoType = Type.getInternalName(transformedMojoInstance.getClass());
 
-		String pluginType = (heapWatchMojo.getClass().getName() + "GradlePlugin").replace('.', '/');
+		String pluginType = (greeterMojo.getClass().getName() + "GradlePlugin").replace('.', '/');
 		Class<?> pluginClass = asmClassLoader.defineClass(
 				createPlugin(pluginType, extensionType, mojoType, "greet", "greeting"), pluginType.replace('/', '.'));
 		Object plugin = pluginClass.newInstance();

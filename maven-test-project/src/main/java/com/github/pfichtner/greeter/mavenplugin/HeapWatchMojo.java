@@ -1,4 +1,4 @@
-package com.github.pfichtner.heapwatch.mavenplugin;
+package com.github.pfichtner.greeter.mavenplugin;
 
 import static org.apache.maven.plugins.annotations.LifecyclePhase.POST_INTEGRATION_TEST;
 
