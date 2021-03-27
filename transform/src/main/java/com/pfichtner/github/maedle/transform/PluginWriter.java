@@ -1,5 +1,9 @@
 package com.pfichtner.github.maedle.transform;
 
+import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
+import static org.objectweb.asm.ClassReader.EXPAND_FRAMES;
+import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
+import static org.objectweb.asm.ClassWriter.COMPUTE_MAXS;
 import static org.objectweb.asm.Opcodes.ACC_BRIDGE;
 import static org.objectweb.asm.Opcodes.ACC_FINAL;
 import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
@@ -9,6 +13,7 @@ import static org.objectweb.asm.Opcodes.ACC_SUPER;
 import static org.objectweb.asm.Opcodes.ACC_SYNTHETIC;
 import static org.objectweb.asm.Opcodes.ALOAD;
 import static org.objectweb.asm.Opcodes.ANEWARRAY;
+import static org.objectweb.asm.Opcodes.ASM9;
 import static org.objectweb.asm.Opcodes.ASTORE;
 import static org.objectweb.asm.Opcodes.CHECKCAST;
 import static org.objectweb.asm.Opcodes.DUP;
@@ -21,16 +26,78 @@ import static org.objectweb.asm.Opcodes.NEW;
 import static org.objectweb.asm.Opcodes.POP;
 import static org.objectweb.asm.Opcodes.RETURN;
 
+import java.io.IOException;
+import java.lang.reflect.Field;
+
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.commons.ClassRemapper;
+import org.objectweb.asm.commons.Remapper;
 
-// TODO replace by mixin: Project with deps to gradle, place the class written by the plugin and remap to the right mojo
+import com.pfichtner.github.maedle.MaedlePluginTemplate;
+
 public class PluginWriter {
 
 	public static byte[] createPlugin(String pluginClass, String extensionClass, String mojoClass, String taskName,
+			String extensionName) throws Exception {
+		return createPluginMixin(pluginClass, extensionClass, mojoClass, taskName, extensionName);
+	}
+
+	private static byte[] createPluginMixin(String pluginClass, String extensionClass, String mojoClass,
+			String taskName, String extensionName) {
+		// TODO handle taskName
+		// TODO handle extensionName
+
+		ClassWriter cw = new ClassWriter(COMPUTE_FRAMES | COMPUTE_MAXS);
+		try {
+
+			ClassVisitor cw2 = new ClassVisitor(ASM9, cw) {
+
+				Class<?> plugin = MaedlePluginTemplate.class;
+				Field extensionField = plugin.getDeclaredField("EXTENSION");
+				Field taskField = plugin.getDeclaredField("TASK");
+
+				@Override
+				public FieldVisitor visitField(int access, String name, String descriptor, String signature,
+						Object value) {
+					if (name.equals(taskField.getName())) {
+						value = taskName;
+					} else if (name.equals(extensionField.getName())) {
+						value = extensionName;
+					}
+					return super.visitField(access, name, descriptor, signature, value);
+				}
+			};
+
+			ClassRemapper remapper = new ClassRemapper(cw2, new Remapper() {
+				@Override
+				public String map(String internalName) {
+					if (internalName.equals("com/pfichtner/github/maedle/MaedlePluginTemplate")) {
+						return pluginClass;
+					} else if (internalName.equals("com/pfichtner/github/maedle/TransformedExtension")) {
+						return extensionClass;
+					} else if (internalName.equals("com/pfichtner/github/maedle/TransformedMojo")) {
+						return mojoClass;
+					} else {
+						return internalName;
+					}
+				}
+
+			});
+
+			new ClassReader(asStream(MaedlePluginTemplate.class)).accept(remapper, EXPAND_FRAMES);
+			return cw.toByteArray();
+		} catch (IOException | NoSuchFieldException | SecurityException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public static byte[] createPluginAsm(String pluginClass, String extensionClass, String mojoClass, String taskName,
 			String extensionName) throws Exception {
 		ClassWriter cw = new ClassWriter(0);
 		FieldVisitor fv;
@@ -128,4 +195,5 @@ public class PluginWriter {
 
 		return cw.toByteArray();
 	}
+
 }

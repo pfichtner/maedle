@@ -47,7 +47,7 @@ public class GreeterMojoIT {
 		GreeterMojo heapWatchMojo = new GreeterMojo();
 		Object transformedMojoInstance = transformedMojoInstance(heapWatchMojo);
 
-		AsmClassLoader asmClassLoader = new AsmClassLoader(new URLClassLoader(urls(), getClass().getClassLoader()));
+		AsmClassLoader asmClassLoader = new AsmClassLoader(new URLClassLoader(urls(), transformedMojoInstance.getClass().getClassLoader()));
 
 		String extensionType = Type.getInternalName(typeOfSingleArgConstructor(transformedMojoInstance));
 		String mojoType = Type.getInternalName(transformedMojoInstance.getClass());

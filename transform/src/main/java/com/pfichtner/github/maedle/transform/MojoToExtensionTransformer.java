@@ -86,7 +86,8 @@ public class MojoToExtensionTransformer extends ClassNode {
 		this.classVisitor = new ClassRemapper(classVisitor, new Remapper() {
 			@Override
 			public String map(String internalName) {
-				return internalName.equals(MojoToExtensionTransformer.this.name) ? newClassName : internalName;
+				return internalName.equals(MojoToExtensionTransformer.this.name) ? newClassName
+						: super.map(internalName);
 			}
 		});
 		this.attributeNames = attributeNames;
