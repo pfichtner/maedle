@@ -92,7 +92,7 @@ public class GreeterMojoTest {
 
 		assertThat(e1.getMessage()).isEqualTo(e2.getMessage());
 		assertThat(packageName(e1)).startsWith("org.apache.maven");
-		assertThat(packageName(e2)).doesNotStartWith("org.apache.maven");
+		assertThat((e2.getClass())).isEqualTo(TaskExecutionException.class);
 	}
 
 	@Test

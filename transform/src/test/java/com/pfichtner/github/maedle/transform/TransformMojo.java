@@ -1,5 +1,7 @@
 package com.pfichtner.github.maedle.transform;
 
+import static com.pfichtner.github.maedle.transform.Constants.MAVEN_MOJO_EXECUTION_EXCEPTION;
+import static com.pfichtner.github.maedle.transform.Constants.MAVEN_MOJO_FAILURE_EXCEPTION;
 import static com.pfichtner.github.maedle.transform.util.BeanUtil.copyAttributes;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static org.objectweb.asm.ClassReader.EXPAND_FRAMES;
@@ -12,6 +14,8 @@ import org.apache.maven.plugin.Mojo;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.commons.Remapper;
 import org.objectweb.asm.util.TraceClassVisitor;
 
 public class TransformMojo {
@@ -32,7 +36,20 @@ public class TransformMojo {
 
 		ClassWriter classWriter;
 		classWriter = new ClassWriter(COMPUTE_MAXS | COMPUTE_FRAMES);
-		StripMojoTransformer stripMojoTransformer = new StripMojoTransformer(classWriter, extensionClassName);
+		StripMojoTransformer stripMojoTransformer = new StripMojoTransformer(classWriter, extensionClassName)
+				.withRemapper(new Remapper() {
+					@Override
+					public String map(String internalName) {
+						Type type = org.objectweb.asm.Type.getType(TaskExecutionException.class);
+						if (MAVEN_MOJO_FAILURE_EXCEPTION.equals(internalName)) {
+							return type.getInternalName();
+						} else if (MAVEN_MOJO_EXECUTION_EXCEPTION.equals(internalName)) {
+							return type.getInternalName();
+						} else {
+							return internalName;
+						}
+					}
+				});
 		new ClassReader(asStream(originalMojo.getClass())).accept(trace(stripMojoTransformer), EXPAND_FRAMES);
 		Class<?> mojoClass = loadClass(asmClassLoader, classWriter, originalMojo.getClass().getName());
 

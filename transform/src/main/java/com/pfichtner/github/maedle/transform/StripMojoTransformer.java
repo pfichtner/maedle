@@ -52,11 +52,28 @@ public class StripMojoTransformer extends ClassNode {
 	private final List<String> filteredFields = new ArrayList<>();
 	private boolean classHasMojoAnno;
 	private Map<String, Object> mojoAnnotationValues = emptyMap();
+	private Remapper remapper = new Remapper() {
+		@Override
+		public String map(String internalName) {
+			if (MAVEN_MOJO_FAILURE_EXCEPTION.equals(internalName)) {
+				return "org/gradle/api/tasks/TaskExecutionException";
+			} else if (MAVEN_MOJO_EXECUTION_EXCEPTION.equals(internalName)) {
+				return "org/gradle/api/tasks/TaskExecutionException";
+			} else {
+				return internalName;
+			}
+		}
+	};
 
 	public StripMojoTransformer(ClassVisitor classVisitor, String extensionClassName) {
 		super(ASM9);
 		this.classVisitor = classVisitor;
 		this.extensionClassName = extensionClassName;
+	}
+
+	public StripMojoTransformer withRemapper(Remapper remapper) {
+		this.remapper = remapper;
+		return this;
 	}
 
 	public Map<String, Object> getMojoAnnotationValues() {
@@ -122,19 +139,7 @@ public class StripMojoTransformer extends ClassNode {
 	}
 
 	private ClassRemapper mapMavenExceptions(ClassVisitor classVisitor) {
-		return new ClassRemapper(classVisitor, new Remapper() {
-			@Override
-			public String map(String internalName) {
-				// TODO is there a gradle exception type we can map to?
-				if (MAVEN_MOJO_FAILURE_EXCEPTION.equals(internalName)) {
-					return "java/lang/RuntimeException";
-				} else if (MAVEN_MOJO_EXECUTION_EXCEPTION.equals(internalName)) {
-					return "java/lang/RuntimeException";
-				} else {
-					return internalName;
-				}
-			}
-		});
+		return new ClassRemapper(classVisitor, remapper);
 	}
 
 	private List<String> filterMavenExceptions(List<String> exceptions) {
