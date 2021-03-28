@@ -73,7 +73,7 @@ public class StripMojoTransformer extends ClassNode {
 	}
 
 	public StripMojoTransformer withRemapper(Remapper remapper) {
-		this.remapper = remapper;
+		this.remapper = remapper == null ? defaultRemapper : remapper;
 		return this;
 	}
 

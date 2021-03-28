@@ -1,6 +1,7 @@
 package com.pfichtner.github.maedle.transform;
 
 import static com.pfichtner.github.maedle.transform.PluginWriter.createPlugin;
+import static com.pfichtner.github.maedle.transform.loader.MojoLoader.transformedInstance;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.constructor;
 
 import java.lang.reflect.Method;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.objectweb.asm.Type;
 
 import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
+import com.pfichtner.github.maedle.transform.loader.AsmClassLoader;
 
 public class GreeterMojoIT {
 
@@ -38,8 +40,7 @@ public class GreeterMojoIT {
 	void canTransformHeapWatchMojo() throws Exception {
 		// TODO Do not forget to write META-INF! ;-)
 		GreeterMojo greeterMojo = new GreeterMojo();
-		Object transformedMojoInstance = new MojoTransformer(greeterMojo.getClass()).transformedInstance(greeterMojo);
-
+		Object transformedMojoInstance = transformedInstance(greeterMojo);
 
 		String extensionType = Type.getInternalName(typeOfSingleArgConstructor(transformedMojoInstance));
 		String mojoType = Type.getInternalName(transformedMojoInstance.getClass());
