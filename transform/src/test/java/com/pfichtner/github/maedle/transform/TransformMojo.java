@@ -11,7 +11,6 @@ import static org.objectweb.asm.ClassWriter.COMPUTE_MAXS;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.InvocationTargetException;
 
 import org.apache.maven.plugin.Mojo;
 import org.objectweb.asm.ClassReader;
@@ -38,8 +37,7 @@ public class TransformMojo {
 		return load(originalMojo, result);
 	}
 
-	private static Object load(Mojo originalMojo, TransformationResult result)
-			throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
+	private static Object load(Mojo originalMojo, TransformationResult result) throws Exception {
 		AsmClassLoader asmClassLoader = new AsmClassLoader(Thread.currentThread().getContextClassLoader());
 		Class<?> mojoClass = loadClass(asmClassLoader, result.originalMojoClassName, result.transformedMojo);
 		Class<?> extensionClass = loadClass(asmClassLoader, result.extensionClassName, result.extension);
