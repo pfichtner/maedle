@@ -15,7 +15,7 @@ public class MojoTransformer {
 
 	public static TransformationParameters transform(Class<? extends Mojo> mojoClass) throws IOException {
 		TransformationParameters parameters = new TransformationParameters(toBytes(asStream(mojoClass)));
-		parameters.exceptionRemapper = new Remapper() {
+		parameters.setExceptionRemapper(new Remapper() {
 			@Override
 			public String map(String internalName) {
 				Type type = Type.getType(com.pfichtner.github.maedle.transform.TaskExecutionException.class);
@@ -27,7 +27,7 @@ public class MojoTransformer {
 					return internalName;
 				}
 			}
-		};
+		});
 		return parameters;
 	}
 

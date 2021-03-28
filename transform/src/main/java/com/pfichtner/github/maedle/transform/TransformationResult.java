@@ -24,19 +24,19 @@ public class TransformationResult {
 
 	private byte[] mojo() throws IOException {
 		ClassWriter cw = newClassWriter();
-		read(new StripMojoTransformer(cw, parameters.extensionClassName.replace('.', '/'), parameters.mojoData)
-				.withRemapper(parameters.exceptionRemapper));
+		read(new StripMojoTransformer(cw, parameters.getExtensionClass().getInternalName(), parameters.getMojoData())
+				.withRemapper(parameters.getExceptionRemapper()));
 		return cw.toByteArray();
 	}
 
 	private byte[] extension() throws IOException {
 		ClassWriter cw = newClassWriter();
-		read(new MojoToExtensionTransformer(cw, parameters.extensionClassName.replace('.', '/'), parameters.mojoData));
+		read(new MojoToExtensionTransformer(cw, parameters.getExtensionClass().getInternalName(), parameters.getMojoData()));
 		return cw.toByteArray();
 	}
 
 	private void read(ClassVisitor cv) throws IOException {
-		new ClassReader(parameters.mojo).accept(cv, EXPAND_FRAMES);
+		new ClassReader(parameters.getMojo()).accept(cv, EXPAND_FRAMES);
 	}
 
 	private ClassWriter newClassWriter() {

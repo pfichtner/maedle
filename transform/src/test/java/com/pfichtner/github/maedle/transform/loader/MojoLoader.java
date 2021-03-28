@@ -32,7 +32,7 @@ public final class MojoLoader {
 	 */
 	public static Object transformedInstance(Mojo mojo) throws Exception {
 		TransformationParameters parameters = new TransformationParameters(toBytes(asStream(mojo.getClass())));
-		parameters.exceptionRemapper = new Remapper() {
+		parameters.setExceptionRemapper(new Remapper() {
 			@Override
 			public String map(String internalName) {
 				Type type = Type.getType(com.pfichtner.github.maedle.transform.TaskExecutionException.class);
@@ -44,21 +44,21 @@ public final class MojoLoader {
 					return internalName;
 				}
 			}
-		};
+		});
 		return load(mojo, parameters, new TransformationResult(parameters));
 	}
 
 	private static Object load(Mojo originalMojo, TransformationParameters parameters, TransformationResult result)
 			throws Exception {
 		AsmClassLoader asmClassLoader = new AsmClassLoader(Thread.currentThread().getContextClassLoader());
-		Class<?> mojoClass = loadClass(asmClassLoader, parameters.mojoData.getClassname(), result.getTransformedMojo());
-		Class<?> extensionClass = loadClass(asmClassLoader, parameters.extensionClassName, result.getExtension());
+		Class<?> mojoClass = loadClass(asmClassLoader, parameters.getMojoData().getMojoType(), result.getTransformedMojo());
+		Class<?> extensionClass = loadClass(asmClassLoader, parameters.getExtensionClass(), result.getExtension());
 		Object extension = extensionClass.newInstance();
 		return mojoClass.getConstructor(extension.getClass()).newInstance(copyAttributes(originalMojo, extension));
 	}
 
-	private static Class<?> loadClass(AsmClassLoader asmClassLoader, String string, byte[] byteArray) {
-		return asmClassLoader.defineClass(byteArray, string.replace('/', '.'));
+	private static Class<?> loadClass(AsmClassLoader asmClassLoader, Type type, byte[] byteArray) {
+		return asmClassLoader.defineClass(byteArray, type.getClassName());
 	}
 
 }

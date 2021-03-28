@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -36,6 +37,13 @@ public final class AsmUtil {
 	public static MethodNode withInstructions(MethodNode methodNode, AbstractInsnNode... instructions) {
 		Arrays.stream(instructions).forEach(methodNode.instructions::add);
 		return methodNode;
+	}
+
+	public static Type typeForClassName(String name) {
+		if (name.indexOf('/') >= 0) {
+			throw new IllegalArgumentException("Illegal class name " + name);
+		}
+		return Type.getType(name);
 	}
 
 }

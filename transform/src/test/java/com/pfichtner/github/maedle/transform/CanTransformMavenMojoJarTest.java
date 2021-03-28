@@ -65,11 +65,11 @@ class CanTransformMavenMojoJarTest {
 			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 				if (matcher.matches(file)) {
 					TransformationParameters parameters = new TransformationParameters(read(file));
-					if (parameters.mojoData.isMojo()) {
+					if (parameters.getMojoData().isMojo()) {
 						TransformationResult result = new TransformationResult(parameters);
 						byte[] transformedMojo = result.getTransformedMojo();
 						byte[] extension = result.getExtension();
-						System.out.println(parameters.mojoData.getClassname().replace('/', '.'));
+						System.out.println(parameters.getMojoData().getMojoType().getClassName());
 						System.out.println(transformedMojo.length);
 						System.out.println(extension.length);
 					}
