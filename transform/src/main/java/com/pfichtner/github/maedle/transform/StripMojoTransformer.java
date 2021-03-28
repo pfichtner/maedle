@@ -115,7 +115,7 @@ public class StripMojoTransformer extends ClassNode {
 		m.instructions.forEach(n -> {
 			if (n.getType() == FIELD_INSN) {
 				FieldInsnNode fin = (FieldInsnNode) n;
-				if (hasMoved(fin)) {
+				if (hasMovedToExtensionClass(fin)) {
 					m.instructions.insertBefore(n,
 							new FieldInsnNode(n.getOpcode(), fin.owner, "extension", "L" + extensionClassName + ";"));
 					fin.owner = extensionClassName;
@@ -124,7 +124,7 @@ public class StripMojoTransformer extends ClassNode {
 		});
 	}
 
-	private boolean hasMoved(FieldInsnNode node) {
+	private boolean hasMovedToExtensionClass(FieldInsnNode node) {
 		return this.name.equals(node.owner)
 				&& mojoData.getMojoParameterFields().stream().map(f -> f.name).anyMatch(node.name::equals);
 	}

@@ -38,13 +38,13 @@ public class GreeterMojoIT {
 	void canTransformHeapWatchMojo() throws Exception {
 		// TODO Do not forget to write META-INF! ;-)
 		GreeterMojo greeterMojo = new GreeterMojo();
-		Object transformedMojoInstance = new TransformMojo(greeterMojo).transformMojoInstance();
+		Object transformedMojoInstance = new MojoTransformer(greeterMojo.getClass()).transformedInstance(greeterMojo);
 
-		AsmClassLoader asmClassLoader = new AsmClassLoader(transformedMojoInstance.getClass().getClassLoader());
 
 		String extensionType = Type.getInternalName(typeOfSingleArgConstructor(transformedMojoInstance));
 		String mojoType = Type.getInternalName(transformedMojoInstance.getClass());
 
+		AsmClassLoader asmClassLoader = new AsmClassLoader(transformedMojoInstance.getClass().getClassLoader());
 		String pluginType = (greeterMojo.getClass().getName() + "GradlePlugin").replace('.', '/');
 		Class<?> pluginClass = asmClassLoader.defineClass(
 				createPlugin(pluginType, extensionType, mojoType, "greet", "greeting"), pluginType.replace('/', '.'));
