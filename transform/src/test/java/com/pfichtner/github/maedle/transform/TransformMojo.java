@@ -32,8 +32,9 @@ public class TransformMojo {
 	 * @throws Exception
 	 */
 	public static Object transformedMojoInstance(Mojo originalMojo) throws Exception {
+		String originalMojoClassName = originalMojo.getClass().getName();
 		TransformationResult result = new TransformationResult(toBytes(asStream(originalMojo.getClass())),
-				originalMojo.getClass().getName());
+				originalMojoClassName, originalMojoClassName + "GradlePluginExtension");
 		return load(originalMojo, result);
 	}
 
@@ -54,10 +55,11 @@ public class TransformMojo {
 		private final byte[] transformedMojo;
 		private final byte[] extension;
 
-		public TransformationResult(byte[] mojoClass, String originalMojoClassName) throws IOException {
+		public TransformationResult(byte[] mojoClass, String originalMojoClassName, String extensionClassName)
+				throws IOException {
 			this.mojoClass = mojoClass;
 			this.originalMojoClassName = originalMojoClassName;
-			this.extensionClassName = (originalMojoClassName + "GradlePluginExtension").replace('.', '/');
+			this.extensionClassName = extensionClassName;
 			this.transformedMojo = mojo();
 			this.extension = extension();
 
@@ -65,7 +67,8 @@ public class TransformMojo {
 
 		private byte[] mojo() throws IOException {
 			ClassWriter cw = newClassWriter();
-			stripMojoTransformer = new StripMojoTransformer(cw, extensionClassName).withRemapper(exceptionRemapper());
+			stripMojoTransformer = new StripMojoTransformer(cw, extensionClassName.replace('.', '/'))
+					.withRemapper(exceptionRemapper());
 			read(stripMojoTransformer);
 			return cw.toByteArray();
 		}
@@ -73,7 +76,7 @@ public class TransformMojo {
 		private byte[] extension() throws IOException {
 			ClassWriter cw = newClassWriter();
 			MojoToExtensionTransformer mojoToExtensionTransformer = new MojoToExtensionTransformer(cw,
-					extensionClassName, stripMojoTransformer.getFilteredFields());
+					extensionClassName.replace('.', '/'), stripMojoTransformer.getFilteredFields());
 			read(mojoToExtensionTransformer);
 			return cw.toByteArray();
 		}
