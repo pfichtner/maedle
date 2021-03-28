@@ -14,22 +14,26 @@ import java.util.Map;
 
 public class JarReader {
 
-	private Path jar;
+	private final FileSystem fileSystem;
 
-	public JarReader(File jar) {
+	public JarReader(File jar) throws IOException {
 		this(jar.toPath());
 	}
 
-	public JarReader(Path jar) {
-		this.jar = jar;
+	public JarReader(Path jar) throws IOException {
+		this(newFileSystem(URI.create("jar:file:" + jar.toUri().getPath()), jarProperties()));
+	}
+
+	public JarReader(FileSystem fileSystem) {
+		this.fileSystem = fileSystem;
+	}
+
+	public FileSystem getFileSystem() {
+		return fileSystem;
 	}
 
 	public void readJar(FileVisitor<Path> visitor) throws IOException {
-		readJar(newFileSystem(URI.create("jar:file:" + jar.toUri().getPath()), jarProperties()), visitor);
-	}
-
-	private static void readJar(FileSystem jarfs, FileVisitor<Path> visitor) throws IOException {
-		walkFileTree(jarfs.getPath("/"), visitor);
+		walkFileTree(fileSystem.getPath("/"), visitor);
 	}
 
 	private static Map<String, String> jarProperties() {

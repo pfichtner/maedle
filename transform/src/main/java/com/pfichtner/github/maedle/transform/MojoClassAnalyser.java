@@ -20,8 +20,13 @@ public class MojoClassAnalyser extends ClassNode {
 
 	public static class MojoData {
 
+		private String classname;
 		private Map<String, Object> mojoAnnotationValues = emptyMap();
 		private List<FieldNode> mojoParameterFields = emptyList();
+		
+		public String getClassname() {
+			return classname;
+		}
 
 		public boolean isMojo() {
 			return !mojoAnnotationValues.isEmpty();
@@ -46,6 +51,7 @@ public class MojoClassAnalyser extends ClassNode {
 	@Override
 	public void visitEnd() {
 		super.visitEnd();
+		mojoData.classname = name;
 		mojoData.mojoAnnotationValues = nonNull(this.invisibleAnnotations).stream()
 				.filter(n -> Constants.MOJO_ANNOTATION.equals(Type.getType(n.desc))).findFirst().map(AsmUtil::toMap)
 				.orElse(emptyMap());

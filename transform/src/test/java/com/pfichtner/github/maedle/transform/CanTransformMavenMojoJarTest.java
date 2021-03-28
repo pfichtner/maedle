@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 
@@ -27,11 +28,23 @@ class CanTransformMavenMojoJarTest {
 
 	@Test
 	void testName(@TempDir File tmpDir) throws Exception {
-		File jar = new File(tmpDir, "test.jar");
+		transform(addContentToJar(new File(tmpDir, "test.jar")));
+	}
+
+	private File addContentToJar(File jar) throws IOException, FileNotFoundException, URISyntaxException {
 		try (JarBuilder jarBuilder = new JarBuilder(new FileOutputStream(jar))) {
-			addClass(jarBuilder, GreeterMojo.class);
+			addClass(jarBuilder, nonMojoClass());
+			addClass(jarBuilder, mojoClass());
 		}
-		transform(jar);
+		return jar;
+	}
+
+	private static Class<CanTransformMavenMojoJarTest> nonMojoClass() {
+		return CanTransformMavenMojoJarTest.class;
+	}
+
+	private static Class<GreeterMojo> mojoClass() {
+		return GreeterMojo.class;
 	}
 
 	private void addClass(JarBuilder jarBuilder, Class<?> clazz)
@@ -40,24 +53,35 @@ class CanTransformMavenMojoJarTest {
 	}
 
 	private void transform(File jar) throws IOException {
-		new JarReader(jar).readJar(visitor());
+		JarReader jarReader = new JarReader(jar);
+		jarReader.readJar(visitor(jarReader.getFileSystem().getPathMatcher("glob:**.class")));
 		fail("not implemented yet");
 	}
 
-	private SimpleFileVisitor<Path> visitor() {
+	private SimpleFileVisitor<Path> visitor(PathMatcher matcher) {
 		return new SimpleFileVisitor<Path>() {
 
 			@Override
 			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-				byte[] bytes = content(file);
-				System.out.println(file + " has length " + bytes.length);
+				if (matcher.matches(file)) {
+					TransformationParameters parameters = new TransformationParameters(read(file));
+					if (parameters.mojoData.isMojo()) {
+						TransformationResult result = new TransformationResult(parameters);
+						byte[] transformedMojo = result.getTransformedMojo();
+						byte[] extension = result.getExtension();
+						System.out.println(parameters.mojoData.getClassname().replace('/', '.'));
+						System.out.println(transformedMojo.length);
+						System.out.println(extension.length);
+					}
+				}
 				return CONTINUE;
 			}
 
-			private byte[] content(Path file) throws IOException {
+			private byte[] read(Path file) throws IOException {
 				ByteArrayOutputStream baos = new ByteArrayOutputStream();
 				copy(file, baos);
-				return baos.toByteArray();
+				byte[] byteArray = baos.toByteArray();
+				return byteArray;
 			}
 
 		};

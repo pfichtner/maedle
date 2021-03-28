@@ -31,8 +31,7 @@ public final class MojoLoader {
 	 * @throws Exception
 	 */
 	public static Object transformedInstance(Mojo mojo) throws Exception {
-		TransformationParameters parameters = new TransformationParameters(toBytes(asStream(mojo.getClass())),
-				mojo.getClass().getName());
+		TransformationParameters parameters = new TransformationParameters(toBytes(asStream(mojo.getClass())));
 		parameters.exceptionRemapper = new Remapper() {
 			@Override
 			public String map(String internalName) {
@@ -52,7 +51,7 @@ public final class MojoLoader {
 	private static Object load(Mojo originalMojo, TransformationParameters parameters, TransformationResult result)
 			throws Exception {
 		AsmClassLoader asmClassLoader = new AsmClassLoader(Thread.currentThread().getContextClassLoader());
-		Class<?> mojoClass = loadClass(asmClassLoader, parameters.mojoClassName, result.getTransformedMojo());
+		Class<?> mojoClass = loadClass(asmClassLoader, parameters.mojoData.getClassname(), result.getTransformedMojo());
 		Class<?> extensionClass = loadClass(asmClassLoader, parameters.extensionClassName, result.getExtension());
 		Object extension = extensionClass.newInstance();
 		return mojoClass.getConstructor(extension.getClass()).newInstance(copyAttributes(originalMojo, extension));
