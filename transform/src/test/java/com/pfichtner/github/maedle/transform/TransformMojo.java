@@ -56,7 +56,6 @@ public class TransformMojo {
 		private final MojoData mojoData;
 		private final String originalMojoClassName;
 		private final String extensionClassName;
-		private StripMojoTransformer stripMojoTransformer;
 		private final byte[] transformedMojo;
 		private final byte[] extension;
 
@@ -73,17 +72,14 @@ public class TransformMojo {
 
 		private byte[] mojo() throws IOException {
 			ClassWriter cw = newClassWriter();
-			stripMojoTransformer = new StripMojoTransformer(cw, extensionClassName.replace('.', '/'), mojoData)
-					.withRemapper(exceptionRemapper());
-			read(stripMojoTransformer);
+			read(new StripMojoTransformer(cw, extensionClassName.replace('.', '/'), mojoData)
+					.withRemapper(exceptionRemapper()));
 			return cw.toByteArray();
 		}
 
 		private byte[] extension() throws IOException {
 			ClassWriter cw = newClassWriter();
-			MojoToExtensionTransformer mojoToExtensionTransformer = new MojoToExtensionTransformer(cw,
-					extensionClassName.replace('.', '/'), mojoData);
-			read(mojoToExtensionTransformer);
+			read(new MojoToExtensionTransformer(cw, extensionClassName.replace('.', '/'), mojoData));
 			return cw.toByteArray();
 		}
 
