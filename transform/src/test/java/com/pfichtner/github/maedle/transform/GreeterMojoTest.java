@@ -1,6 +1,7 @@
 package com.pfichtner.github.maedle.transform;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOut;
+import static com.pfichtner.github.maedle.transform.MojoClassAnalyser.mojoData;
 import static com.pfichtner.github.maedle.transform.TransformMojo.transformedMojoInstance;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.constructor;
@@ -20,6 +21,7 @@ import org.objectweb.asm.ClassWriter;
 
 import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
 import com.github.stefanbirkner.systemlambda.Statement;
+import com.pfichtner.github.maedle.transform.MojoClassAnalyser.MojoData;
 
 public class GreeterMojoTest {
 
@@ -58,11 +60,14 @@ public class GreeterMojoTest {
 		Class<?> extensionClass = extensionClassOf(transformedMojoInstance);
 //		
 		ClassWriter classWriter = new ClassWriter(0);
-		StripMojoTransformer mojoToGradleTransformer = new StripMojoTransformer(classWriter, extensionClass.getName());
+
+		MojoData mojoData = mojoData(new ClassReader(asStream(GreeterMojoTest.class)));
+		StripMojoTransformer mojoToGradleTransformer = new StripMojoTransformer(classWriter, extensionClass.getName(),
+				mojoData);
 		new ClassReader(asStream(GreeterMojoTest.class)).accept(mojoToGradleTransformer, 0);
 //		new ClassReader(asStream(extensionClass)).accept(mojoToGradleTransformer, 0);
 
-		assertThat(mojoToGradleTransformer.isMojo()).isFalse();
+		assertThat(mojoData.isMojo()).isFalse();
 //		assertEquals(bytes, classWriter3.toByteArray());
 	}
 

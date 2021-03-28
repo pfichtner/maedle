@@ -2,6 +2,7 @@ package com.pfichtner.github.maedle.transform;
 
 import static com.pfichtner.github.maedle.transform.Constants.MAVEN_MOJO_EXECUTION_EXCEPTION;
 import static com.pfichtner.github.maedle.transform.Constants.MAVEN_MOJO_FAILURE_EXCEPTION;
+import static com.pfichtner.github.maedle.transform.MojoClassAnalyser.mojoData;
 import static com.pfichtner.github.maedle.transform.util.BeanUtil.copyAttributes;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.toBytes;
@@ -20,6 +21,8 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.Remapper;
 import org.objectweb.asm.util.TraceClassVisitor;
 
+import com.pfichtner.github.maedle.transform.MojoClassAnalyser.MojoData;
+
 public class TransformMojo {
 
 	/**
@@ -32,8 +35,9 @@ public class TransformMojo {
 	 * @throws Exception
 	 */
 	public static Object transformedMojoInstance(Mojo originalMojo) throws Exception {
+		byte[] bytes = toBytes(asStream(originalMojo.getClass()));
 		String originalMojoClassName = originalMojo.getClass().getName();
-		TransformationResult result = new TransformationResult(toBytes(asStream(originalMojo.getClass())),
+		TransformationResult result = new TransformationResult(bytes, mojoData(new ClassReader(bytes)),
 				originalMojoClassName, originalMojoClassName + "GradlePluginExtension");
 		return load(originalMojo, result);
 	}
@@ -49,15 +53,17 @@ public class TransformMojo {
 	private static class TransformationResult {
 
 		private final byte[] mojoClass;
+		private final MojoData mojoData;
 		private final String originalMojoClassName;
 		private final String extensionClassName;
 		private StripMojoTransformer stripMojoTransformer;
 		private final byte[] transformedMojo;
 		private final byte[] extension;
 
-		public TransformationResult(byte[] mojoClass, String originalMojoClassName, String extensionClassName)
-				throws IOException {
+		public TransformationResult(byte[] mojoClass, MojoData mojoData, String originalMojoClassName,
+				String extensionClassName) throws IOException {
 			this.mojoClass = mojoClass;
+			this.mojoData = mojoData;
 			this.originalMojoClassName = originalMojoClassName;
 			this.extensionClassName = extensionClassName;
 			this.transformedMojo = mojo();
@@ -67,7 +73,7 @@ public class TransformMojo {
 
 		private byte[] mojo() throws IOException {
 			ClassWriter cw = newClassWriter();
-			stripMojoTransformer = new StripMojoTransformer(cw, extensionClassName.replace('.', '/'))
+			stripMojoTransformer = new StripMojoTransformer(cw, extensionClassName.replace('.', '/'), mojoData)
 					.withRemapper(exceptionRemapper());
 			read(stripMojoTransformer);
 			return cw.toByteArray();
@@ -76,7 +82,7 @@ public class TransformMojo {
 		private byte[] extension() throws IOException {
 			ClassWriter cw = newClassWriter();
 			MojoToExtensionTransformer mojoToExtensionTransformer = new MojoToExtensionTransformer(cw,
-					extensionClassName.replace('.', '/'), stripMojoTransformer.getFilteredFields());
+					extensionClassName.replace('.', '/'), mojoData);
 			read(mojoToExtensionTransformer);
 			return cw.toByteArray();
 		}

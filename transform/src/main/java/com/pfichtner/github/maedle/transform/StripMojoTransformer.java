@@ -16,9 +16,7 @@ import static org.objectweb.asm.Opcodes.PUTFIELD;
 import static org.objectweb.asm.Opcodes.RETURN;
 import static org.objectweb.asm.tree.AbstractInsnNode.FIELD_INSN;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
@@ -33,6 +31,7 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
+import com.pfichtner.github.maedle.transform.MojoClassAnalyser.MojoData;
 import com.pfichtner.github.maedle.transform.util.AsmUtil;
 
 /**
@@ -46,13 +45,7 @@ import com.pfichtner.github.maedle.transform.util.AsmUtil;
  */
 public class StripMojoTransformer extends ClassNode {
 
-	private final ClassVisitor classVisitor;
-	private final String extensionClassName;
-
-	private final List<String> filteredFields = new ArrayList<>();
-	private boolean classHasMojoAnno;
-	private Map<String, Object> mojoAnnotationValues = emptyMap();
-	private Remapper remapper = new Remapper() {
+	private static final Remapper defaultRemapper = new Remapper() {
 		@Override
 		public String map(String internalName) {
 			if (MAVEN_MOJO_FAILURE_EXCEPTION.equals(internalName)) {
@@ -65,10 +58,18 @@ public class StripMojoTransformer extends ClassNode {
 		}
 	};
 
-	public StripMojoTransformer(ClassVisitor classVisitor, String extensionClassName) {
+	private final ClassVisitor classVisitor;
+	private final String extensionClassName;
+
+	private final MojoData mojoData;
+
+	private Remapper remapper = defaultRemapper;
+
+	public StripMojoTransformer(ClassVisitor classVisitor, String extensionClassName, MojoData mojoData) {
 		super(ASM9);
 		this.classVisitor = classVisitor;
 		this.extensionClassName = extensionClassName;
+		this.mojoData = mojoData;
 	}
 
 	public StripMojoTransformer withRemapper(Remapper remapper) {
@@ -76,47 +77,32 @@ public class StripMojoTransformer extends ClassNode {
 		return this;
 	}
 
-	public Map<String, Object> getMojoAnnotationValues() {
-		return mojoAnnotationValues;
-	}
-
-	public boolean isMojo() {
-		return classHasMojoAnno;
-	}
-
 	@Override
 	public void accept(ClassVisitor classVisitor) {
-		if (classHasMojoAnno) {
-			mojoAnnotationValues = this.invisibleAnnotations.stream()
-					.filter(n -> Constants.MOJO_ANNOTATION.equals(Type.getType(n.desc))).findFirst()
-					.map(n -> AsmUtil.toMap(n)).orElse(emptyMap());
-			superName = "java/lang/Object";
-			List<FieldNode> fieldsToRemove = fields.stream().filter(f -> nonNull(f.invisibleAnnotations).stream()
-					.map(a -> Type.getType(a.desc)).noneMatch(Constants.mavenParameterAnnotation::equals))
-					.collect(toList());
-			fields.removeAll(fieldsToRemove);
-			fields.stream().filter(f -> !fieldsToRemove.contains(f)).map(f -> f.name).forEach(filteredFields::add);
-			fields.add(new FieldNode(ACC_PRIVATE, "extension", "L" + extensionClassName + ";", null, null));
+		nonNull(invisibleAnnotations).stream().filter(n -> Constants.MOJO_ANNOTATION.equals(Type.getType(n.desc)))
+				.findFirst().map(AsmUtil::toMap).orElse(emptyMap());
+		superName = "java/lang/Object";
+		fields.removeAll(mojoData.getMojoParameterFields());
+		fields.add(new FieldNode(ACC_PRIVATE, "extension", "L" + extensionClassName + ";", null, null));
 
-			methods.removeIf(AsmUtil::isNoArgConstructor);
-			methods.add(extensionClassConstructor());
+		methods.removeIf(AsmUtil::isNoArgConstructor);
+		methods.add(extensionClassConstructor());
 
-			// TODO remap
-			// mv.visitMethodInsn(INVOKEVIRTUAL,
-			// "com/github/pfichtner/heapwatch/mavenplugin/HeapWatchMojo", "getLog",
-			// "()Lorg/apache/maven/plugin/logging/Log;", false);
-			// val slf4jLogger = LoggerFactory.getLogger("some-logger")
-			// slf4jLogger.info("An info log message logged using SLF4j")
+		// TODO remap
+		// mv.visitMethodInsn(INVOKEVIRTUAL,
+		// "com/github/pfichtner/heapwatch/mavenplugin/HeapWatchMojo", "getLog",
+		// "()Lorg/apache/maven/plugin/logging/Log;", false);
+		// val slf4jLogger = LoggerFactory.getLogger("some-logger")
+		// slf4jLogger.info("An info log message logged using SLF4j")
 
-			methods.forEach(this::changeFieldOwner);
-			methods.forEach(m -> m.exceptions = filterMavenExceptions(m.exceptions));
-		}
+		methods.forEach(this::changeFieldOwner);
+		methods.forEach(m -> m.exceptions = filterMavenExceptions(m.exceptions));
 		super.accept(mapMavenExceptions(classVisitor));
 	}
 
 	@Override
 	public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-		classHasMojoAnno = Constants.MOJO_ANNOTATION.equals(Type.getType(descriptor));
+		Constants.MOJO_ANNOTATION.equals(Type.getType(descriptor));
 		return super.visitAnnotation(descriptor, visible);
 	}
 
@@ -129,13 +115,18 @@ public class StripMojoTransformer extends ClassNode {
 		m.instructions.forEach(n -> {
 			if (n.getType() == FIELD_INSN) {
 				FieldInsnNode fin = (FieldInsnNode) n;
-				if (StripMojoTransformer.this.name.equals(fin.owner) && filteredFields.contains(fin.name)) {
+				if (hasMoved(fin)) {
 					m.instructions.insertBefore(n,
 							new FieldInsnNode(n.getOpcode(), fin.owner, "extension", "L" + extensionClassName + ";"));
 					fin.owner = extensionClassName;
 				}
 			}
 		});
+	}
+
+	private boolean hasMoved(FieldInsnNode node) {
+		return this.name.equals(node.owner)
+				&& mojoData.getMojoParameterFields().stream().map(f -> f.name).anyMatch(node.name::equals);
 	}
 
 	private ClassRemapper mapMavenExceptions(ClassVisitor classVisitor) {
@@ -156,10 +147,6 @@ public class StripMojoTransformer extends ClassNode {
 						"L" + extensionClassName + ";"), //
 				new InsnNode(RETURN) //
 		);
-	}
-
-	public List<String> getFilteredFields() {
-		return filteredFields;
 	}
 
 }

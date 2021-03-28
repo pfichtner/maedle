@@ -9,7 +9,6 @@ import static org.objectweb.asm.Opcodes.PUTFIELD;
 import static org.objectweb.asm.tree.AbstractInsnNode.FIELD_INSN;
 import static org.objectweb.asm.tree.AbstractInsnNode.METHOD_INSN;
 
-import java.util.List;
 import java.util.Set;
 
 import org.objectweb.asm.ClassVisitor;
@@ -18,23 +17,34 @@ import org.objectweb.asm.commons.Remapper;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import com.pfichtner.github.maedle.transform.MojoClassAnalyser.MojoData;
 
 public class MojoToExtensionTransformer extends ClassNode {
 
 	private final ClassVisitor classVisitor;
-	private final List<String> attributeNames;
+	private final MojoData mojoData;
 
 	@Override
 	public void visitEnd() {
 		superName = "java/lang/Object";
 		nonNull(invisibleAnnotations).removeIf(isMojoAnnotation);
 		nonNull(visibleAnnotations).removeIf(isMojoAnnotation);
-		fields.removeIf(f -> !attributeNames.contains(f.name));
+		fields.removeIf(f -> !isMojoAttribute(f));
 		methods.removeIf(m -> !isConstructor(m) && (refToFields(m).size() != 1 || hasRefToMethod(m)));
 		methods.stream().filter(MojoToExtensionTransformer::isConstructor).forEach(this::fixConstructor);
 		accept(classVisitor);
+	}
+
+	private boolean isMojoAttribute(FieldNode fieldNode) {
+		return isMojoAttribute(fieldNode.name);
+	}
+
+	private boolean isMojoAttribute(String fieldName) {
+		return mojoData.getMojoParameterFields().stream().map(n -> n.name).anyMatch(fieldName::equals);
 	}
 
 	private static boolean isConstructor(MethodNode methodNode) {
@@ -74,14 +84,14 @@ public class MojoToExtensionTransformer extends ClassNode {
 		AbstractInsnNode insnNode = methodNode.instructions.getFirst();
 		if (insnNode.getType() == FIELD_INSN && insnNode.getOpcode() == PUTFIELD) {
 			FieldInsnNode fieldInsnNode = (FieldInsnNode) insnNode;
-			if (!attributeNames.contains(fieldInsnNode.name)) {
+			if (!isMojoAttribute(fieldInsnNode.name)) {
 				methodNode.instructions.remove(insnNode);
 				methodNode.instructions.remove(insnNode.getPrevious());
 			}
 		}
 	}
 
-	public MojoToExtensionTransformer(ClassVisitor classVisitor, String newClassName, List<String> attributeNames) {
+	public MojoToExtensionTransformer(ClassVisitor classVisitor, String newClassName, MojoData mojoData) {
 		super(ASM9);
 		this.classVisitor = new ClassRemapper(classVisitor, new Remapper() {
 			@Override
@@ -90,7 +100,7 @@ public class MojoToExtensionTransformer extends ClassNode {
 						: super.map(internalName);
 			}
 		});
-		this.attributeNames = attributeNames;
+		this.mojoData = mojoData;
 	}
 
 }
