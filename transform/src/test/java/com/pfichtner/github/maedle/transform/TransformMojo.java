@@ -25,6 +25,12 @@ import com.pfichtner.github.maedle.transform.MojoClassAnalyser.MojoData;
 
 public class TransformMojo {
 
+	private Mojo originalMojo;
+
+	public TransformMojo(Mojo originalMojo) {
+		this.originalMojo = originalMojo;
+	}
+
 	/**
 	 * Based on the passed Mojo an new Mojo class is created. The noarg constructor
 	 * gets migrated to a constructor having an <code>Extension</code> parameter.
@@ -34,63 +40,73 @@ public class TransformMojo {
 	 * @return
 	 * @throws Exception
 	 */
-	public static Object transformedMojoInstance(Mojo originalMojo) throws Exception {
-		byte[] bytes = toBytes(asStream(originalMojo.getClass()));
-		String originalMojoClassName = originalMojo.getClass().getName();
-		TransformationResult result = new TransformationResult(bytes, mojoData(new ClassReader(bytes)),
-				originalMojoClassName, originalMojoClassName + "GradlePluginExtension");
+	public Object transformMojoInstance() throws Exception {
+		byte[] mojoClass = toBytes(asStream(originalMojo.getClass()));
+		TransformationResult result = transform(mojoClass);
 		return load(originalMojo, result);
+	}
+
+	public TransformationResult transform(byte[] mojo) throws IOException {
+		TransformationParameters parameters = new TransformationParameters();
+		parameters.mojo = mojo;
+		parameters.mojoData = mojoData(new ClassReader(mojo));
+		parameters.originalMojoClassName = originalMojo.getClass().getName();
+		parameters.extensionClassName = parameters.originalMojoClassName + "GradlePluginExtension";
+		byte[] transformedMojo = mojo(parameters);
+		byte[] extension = extension(parameters);
+		return new TransformationResult(parameters, transformedMojo, extension);
 	}
 
 	private static Object load(Mojo originalMojo, TransformationResult result) throws Exception {
 		AsmClassLoader asmClassLoader = new AsmClassLoader(Thread.currentThread().getContextClassLoader());
-		Class<?> mojoClass = loadClass(asmClassLoader, result.originalMojoClassName, result.transformedMojo);
-		Class<?> extensionClass = loadClass(asmClassLoader, result.extensionClassName, result.extension);
+		Class<?> mojoClass = loadClass(asmClassLoader, result.parameters.originalMojoClassName, result.transformedMojo);
+		Class<?> extensionClass = loadClass(asmClassLoader, result.parameters.extensionClassName, result.extension);
 		Object extension = extensionClass.newInstance();
 		return mojoClass.getConstructor(extension.getClass()).newInstance(copyAttributes(originalMojo, extension));
 	}
 
-	private static class TransformationResult {
+	private static class TransformationParameters {
+		public byte[] mojo;
+		public MojoData mojoData;
+		public String originalMojoClassName;
+		public String extensionClassName;
+	}
 
-		private final byte[] mojoClass;
-		private final MojoData mojoData;
-		private final String originalMojoClassName;
-		private final String extensionClassName;
+	private static class TransformationResult {
+		private final TransformationParameters parameters;
 		private final byte[] transformedMojo;
 		private final byte[] extension;
 
-		public TransformationResult(byte[] mojoClass, MojoData mojoData, String originalMojoClassName,
-				String extensionClassName) throws IOException {
-			this.mojoClass = mojoClass;
-			this.mojoData = mojoData;
-			this.originalMojoClassName = originalMojoClassName;
-			this.extensionClassName = extensionClassName;
-			this.transformedMojo = mojo();
-			this.extension = extension();
-
+		public TransformationResult(TransformationParameters parameters, byte[] transformedMojo2, byte[] extension2)
+				throws IOException {
+			this.parameters = parameters;
+			this.transformedMojo = transformedMojo2;
+			this.extension = extension2;
 		}
 
-		private byte[] mojo() throws IOException {
-			ClassWriter cw = newClassWriter();
-			read(new StripMojoTransformer(cw, extensionClassName.replace('.', '/'), mojoData)
-					.withRemapper(exceptionRemapper()));
-			return cw.toByteArray();
-		}
+	}
 
-		private byte[] extension() throws IOException {
-			ClassWriter cw = newClassWriter();
-			read(new MojoToExtensionTransformer(cw, extensionClassName.replace('.', '/'), mojoData));
-			return cw.toByteArray();
-		}
+	private byte[] mojo(TransformationParameters parameters) throws IOException {
+		ClassWriter cw = newClassWriter();
+		read(parameters,
+				new StripMojoTransformer(cw, parameters.extensionClassName.replace('.', '/'), parameters.mojoData)
+						.withRemapper(exceptionRemapper()));
+		return cw.toByteArray();
+	}
 
-		private void read(ClassVisitor cv) throws IOException {
-			new ClassReader(mojoClass).accept(trace(cv), EXPAND_FRAMES);
-		}
+	private byte[] extension(TransformationParameters parameters) throws IOException {
+		ClassWriter cw = newClassWriter();
+		read(parameters, new MojoToExtensionTransformer(cw, parameters.extensionClassName.replace('.', '/'),
+				parameters.mojoData));
+		return cw.toByteArray();
+	}
 
-		private ClassWriter newClassWriter() {
-			return new ClassWriter(COMPUTE_MAXS | COMPUTE_FRAMES);
-		}
+	private void read(TransformationParameters parameters, ClassVisitor cv) throws IOException {
+		new ClassReader(parameters.mojo).accept(trace(cv), EXPAND_FRAMES);
+	}
 
+	private ClassWriter newClassWriter() {
+		return new ClassWriter(COMPUTE_MAXS | COMPUTE_FRAMES);
 	}
 
 	private static Remapper exceptionRemapper() {

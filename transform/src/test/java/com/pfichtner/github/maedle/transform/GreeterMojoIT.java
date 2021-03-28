@@ -1,7 +1,6 @@
 package com.pfichtner.github.maedle.transform;
 
 import static com.pfichtner.github.maedle.transform.PluginWriter.createPlugin;
-import static com.pfichtner.github.maedle.transform.TransformMojo.transformedMojoInstance;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.constructor;
 
 import java.lang.reflect.Method;
@@ -39,7 +38,7 @@ public class GreeterMojoIT {
 	void canTransformHeapWatchMojo() throws Exception {
 		// TODO Do not forget to write META-INF! ;-)
 		GreeterMojo greeterMojo = new GreeterMojo();
-		Object transformedMojoInstance = transformedMojoInstance(greeterMojo);
+		Object transformedMojoInstance = new TransformMojo(greeterMojo).transformMojoInstance();
 
 		AsmClassLoader asmClassLoader = new AsmClassLoader(transformedMojoInstance.getClass().getClassLoader());
 

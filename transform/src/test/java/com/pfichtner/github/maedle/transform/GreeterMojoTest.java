@@ -2,7 +2,6 @@ package com.pfichtner.github.maedle.transform;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOut;
 import static com.pfichtner.github.maedle.transform.MojoClassAnalyser.mojoData;
-import static com.pfichtner.github.maedle.transform.TransformMojo.transformedMojoInstance;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.constructor;
 import static java.util.Arrays.stream;
@@ -56,7 +55,7 @@ public class GreeterMojoTest {
 	@Test
 	void worksForNonMojoClasses() throws Exception {
 		GreeterMojo heapWatchMojo = new GreeterMojo();
-		Object transformedMojoInstance = transformedMojoInstance(heapWatchMojo);
+		Object transformedMojoInstance = new TransformMojo(heapWatchMojo).transformMojoInstance();
 		Class<?> extensionClass = extensionClassOf(transformedMojoInstance);
 //		
 		ClassWriter classWriter = new ClassWriter(0);
@@ -74,7 +73,7 @@ public class GreeterMojoTest {
 	@Test
 	void transformedMojoHasSameBehaviorLikeOriginalMojo() throws Exception {
 		GreeterMojo heapWatchMojo = new GreeterMojo();
-		Object transformedMojoInstance = transformedMojoInstance(heapWatchMojo);
+		Object transformedMojoInstance = new TransformMojo(heapWatchMojo).transformMojoInstance();
 		haveSameSysouts(() -> executeMojo(heapWatchMojo), () -> executeMojo(transformedMojoInstance));
 	}
 
@@ -84,7 +83,7 @@ public class GreeterMojoTest {
 	void fieldInitializersAreCopiedFromMojoToExtensionClass() throws Exception {
 		GreeterMojo heapWatchMojo = new GreeterMojo();
 		heapWatchMojo.greeter = "Stranger";
-		Object transformedMojoInstance = transformedMojoInstance(heapWatchMojo);
+		Object transformedMojoInstance = new TransformMojo(heapWatchMojo).transformMojoInstance();
 		haveSameSysouts(() -> executeMojo(heapWatchMojo), () -> executeMojo(transformedMojoInstance));
 	}
 
@@ -92,7 +91,7 @@ public class GreeterMojoTest {
 	void exceptionsIsMapped() throws Exception {
 		GreeterMojo heapWatchMojo = new GreeterMojo();
 		heapWatchMojo.greeter = null;
-		Object transformedMojoInstance = transformedMojoInstance(heapWatchMojo);
+		Object transformedMojoInstance = new TransformMojo(heapWatchMojo).transformMojoInstance();
 		Throwable e1 = getExceptionThrown(() -> executeMojo(heapWatchMojo));
 		Throwable e2 = getExceptionThrown(() -> executeMojo(transformedMojoInstance));
 		assertAll( //
@@ -103,13 +102,13 @@ public class GreeterMojoTest {
 
 	@Test
 	void verifyExtensionClassHasNoMethods() throws Exception {
-		Class<?> extensionClass = extensionClassOf(transformedMojoInstance(new GreeterMojo()));
+		Class<?> extensionClass = extensionClassOf(new TransformMojo(new GreeterMojo()).transformMojoInstance());
 		assertThat(stream(extensionClass.getDeclaredMethods()).map(Method::getName)).isEmpty();
 	}
 
 	@Test
 	void verifyExtensionClassFieldsHaveNoMavenAnnotations() throws Exception {
-		Class<?> extensionClass = extensionClassOf(transformedMojoInstance(new GreeterMojo()));
+		Class<?> extensionClass = extensionClassOf(new TransformMojo(new GreeterMojo()).transformMojoInstance());
 		assertThat(stream(extensionClass.getDeclaredFields()).map(f -> stream(f.getAnnotations())).flatMap(identity()))
 				.isEmpty();
 	}
