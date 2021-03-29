@@ -1,9 +1,12 @@
 package com.pfichtner.github.maedle.transform.util;
 
+import static java.util.Arrays.stream;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
@@ -11,6 +14,8 @@ import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.MethodNode;
 
 public final class AsmUtil {
+
+	public static final String JAVA_LANG_OBJECT = "java/lang/Object";
 
 	private AsmUtil() {
 		super();
@@ -20,8 +25,8 @@ public final class AsmUtil {
 		return isConstructor(methodNode) && methodNode.desc.equals("()V");
 	}
 
-	private static boolean isConstructor(MethodNode methodNode) {
-		return methodNode.name.equals("<init>");
+	public static boolean isConstructor(MethodNode methodNode) {
+		return "<init>".equals(methodNode.name);
 	}
 
 	public static Map<String, Object> toMap(AnnotationNode annotationNode) {
@@ -34,16 +39,15 @@ public final class AsmUtil {
 		return map;
 	}
 
-	public static MethodNode withInstructions(MethodNode methodNode, AbstractInsnNode... instructions) {
-		Arrays.stream(instructions).forEach(methodNode.instructions::add);
-		return methodNode;
-	}
-
 	public static Type objectTypeToInternal(Type type) {
 		if (type.getSort() != Type.OBJECT) {
 			throw new IllegalArgumentException(type + " not of type object");
 		}
 		return Type.getType(type.getDescriptor());
+	}
+
+	public static Stream<AbstractInsnNode> instructions(MethodNode methodNode) {
+		return stream(methodNode.instructions.toArray());
 	}
 
 }

@@ -97,7 +97,7 @@ public class PluginWriter {
 		}
 	}
 
-	public static byte[] createPluginAsm(String pluginClass, String extensionClass, String mojoClass, String taskName,
+	private static byte[] createPluginAsm(String pluginClass, String extensionClass, String mojoClass, String taskName,
 			String extensionName) throws Exception {
 		ClassWriter cw = new ClassWriter(0);
 		FieldVisitor fv;

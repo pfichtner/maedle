@@ -3,8 +3,8 @@ package com.pfichtner.github.maedle.transform;
 import static com.pfichtner.github.maedle.transform.Constants.MAVEN_MOJO_EXECUTION_EXCEPTION;
 import static com.pfichtner.github.maedle.transform.Constants.MAVEN_MOJO_FAILURE_EXCEPTION;
 import static com.pfichtner.github.maedle.transform.Constants.isMavenException;
+import static com.pfichtner.github.maedle.transform.util.AsmUtil.JAVA_LANG_OBJECT;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.objectTypeToInternal;
-import static com.pfichtner.github.maedle.transform.util.AsmUtil.withInstructions;
 import static com.pfichtner.github.maedle.transform.util.CollectionUtil.nonNull;
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
@@ -27,10 +27,7 @@ import org.objectweb.asm.commons.Remapper;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.FieldNode;
-import org.objectweb.asm.tree.InsnNode;
-import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.VarInsnNode;
 
 import com.pfichtner.github.maedle.transform.MojoClassAnalyser.MojoData;
 import com.pfichtner.github.maedle.transform.util.AsmUtil;
@@ -46,12 +43,14 @@ import com.pfichtner.github.maedle.transform.util.AsmUtil;
  */
 public class StripMojoTransformer extends ClassNode {
 
+	private static final String FIELD_NAME_FOR_EXTENSION_INSTANCE = "extension";
+
 	private static final Remapper defaultRemapper = new Remapper() {
 		@Override
 		public String map(String internalName) {
-			if (MAVEN_MOJO_FAILURE_EXCEPTION.equals(internalName)) {
+			if (MAVEN_MOJO_FAILURE_EXCEPTION.equals(Type.getObjectType(internalName))) {
 				return "org/gradle/api/tasks/TaskExecutionException";
-			} else if (MAVEN_MOJO_EXECUTION_EXCEPTION.equals(internalName)) {
+			} else if (MAVEN_MOJO_EXECUTION_EXCEPTION.equals(Type.getObjectType(internalName))) {
 				return "org/gradle/api/tasks/TaskExecutionException";
 			} else {
 				return internalName;
@@ -84,8 +83,8 @@ public class StripMojoTransformer extends ClassNode {
 				.findFirst().map(AsmUtil::toMap).orElse(emptyMap());
 		superName = Type.getType(Object.class).getInternalName();
 		fields.removeAll(mojoData.getMojoParameterFields());
-		fields.add(new FieldNode(ACC_PRIVATE, "extension", objectTypeToInternal(extensionClass).getDescriptor(), null,
-				null));
+		fields.add(new FieldNode(ACC_PRIVATE, FIELD_NAME_FOR_EXTENSION_INSTANCE,
+				objectTypeToInternal(extensionClass).getDescriptor(), null, null));
 
 		methods.removeIf(AsmUtil::isNoArgConstructor);
 		methods.add(extensionClassConstructor());
@@ -118,8 +117,8 @@ public class StripMojoTransformer extends ClassNode {
 			if (n.getType() == FIELD_INSN) {
 				FieldInsnNode fin = (FieldInsnNode) n;
 				if (hasMovedToExtensionClass(fin)) {
-					m.instructions.insertBefore(n, new FieldInsnNode(n.getOpcode(), fin.owner, "extension",
-							objectTypeToInternal(extensionClass).getDescriptor()));
+					m.instructions.insertBefore(n, new FieldInsnNode(n.getOpcode(), fin.owner,
+							FIELD_NAME_FOR_EXTENSION_INSTANCE, objectTypeToInternal(extensionClass).getDescriptor()));
 					fin.owner = extensionClass.getInternalName();
 				}
 			}
@@ -136,20 +135,24 @@ public class StripMojoTransformer extends ClassNode {
 	}
 
 	private List<String> filterMavenExceptions(List<String> exceptions) {
-		return exceptions.stream().filter(t -> !isMavenException(t)).collect(toList());
+		return exceptions.stream().filter(t -> !isMavenException(Type.getObjectType(t))).collect(toList());
 	}
 
 	private MethodNode extensionClassConstructor() {
-		return withInstructions(
-				new MethodNode(ACC_PUBLIC, "<init>", "(L" + extensionClass.getInternalName() + ";)V", null, null),
-				new VarInsnNode(ALOAD, 0), //
-				new MethodInsnNode(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false), //
-				new VarInsnNode(ALOAD, 0), //
-				new VarInsnNode(ALOAD, 1), //
-				new FieldInsnNode(PUTFIELD, StripMojoTransformer.this.name, "extension",
-						objectTypeToInternal(extensionClass).getDescriptor()), //
-				new InsnNode(RETURN) //
-		);
+		// TODO (xxx) is an array, use Type#??? to create
+		MethodNode mv = new MethodNode(ACC_PUBLIC, "<init>",
+				"(" + objectTypeToInternal(extensionClass).getDescriptor() + ")V", null, null);
+		mv.visitCode();
+		mv.visitVarInsn(ALOAD, 0);
+		mv.visitMethodInsn(INVOKESPECIAL, JAVA_LANG_OBJECT, "<init>", "()V", false);
+		mv.visitVarInsn(ALOAD, 0);
+		mv.visitVarInsn(ALOAD, 1);
+		mv.visitFieldInsn(PUTFIELD, this.name, FIELD_NAME_FOR_EXTENSION_INSTANCE,
+				objectTypeToInternal(extensionClass).getDescriptor());
+		mv.visitInsn(RETURN);
+		mv.visitMaxs(2, 1);
+		mv.visitEnd();
+		return mv;
 	}
 
 }
