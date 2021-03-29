@@ -1,7 +1,7 @@
 package com.pfichtner.github.maedle.transform.loader;
 
 import static com.pfichtner.github.maedle.transform.Constants.MAVEN_MOJO_EXECUTION_EXCEPTION;
-import static com.pfichtner.github.maedle.transform.Constants.MAVEN_MOJO_FAILURE_EXCEPTION;
+import static com.pfichtner.github.maedle.transform.Constants.*;
 import static com.pfichtner.github.maedle.transform.util.BeanUtil.copyAttributes;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.toBytes;
@@ -36,9 +36,9 @@ public final class MojoLoader {
 			@Override
 			public String map(String internalName) {
 				Type type = Type.getType(com.pfichtner.github.maedle.transform.TaskExecutionException.class);
-				if (MAVEN_MOJO_FAILURE_EXCEPTION.equals(internalName)) {
+				if (MAVEN_MOJO_FAILURE_EXCEPTION.equals(Type.getObjectType(internalName))) {
 					return type.getInternalName();
-				} else if (MAVEN_MOJO_EXECUTION_EXCEPTION.equals(internalName)) {
+				} else if (MAVEN_MOJO_EXECUTION_EXCEPTION.equals(Type.getObjectType(internalName))) {
 					return type.getInternalName();
 				} else {
 					return internalName;
@@ -51,7 +51,8 @@ public final class MojoLoader {
 	private static Object load(Mojo originalMojo, TransformationParameters parameters, TransformationResult result)
 			throws Exception {
 		AsmClassLoader asmClassLoader = new AsmClassLoader(Thread.currentThread().getContextClassLoader());
-		Class<?> mojoClass = loadClass(asmClassLoader, parameters.getMojoData().getMojoType(), result.getTransformedMojo());
+		Class<?> mojoClass = loadClass(asmClassLoader, parameters.getMojoData().getMojoType(),
+				result.getTransformedMojo());
 		Class<?> extensionClass = loadClass(asmClassLoader, parameters.getExtensionClass(), result.getExtension());
 		Object extension = extensionClass.newInstance();
 		return mojoClass.getConstructor(extension.getClass()).newInstance(copyAttributes(originalMojo, extension));

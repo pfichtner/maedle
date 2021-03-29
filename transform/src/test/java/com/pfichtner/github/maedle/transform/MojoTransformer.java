@@ -19,9 +19,9 @@ public class MojoTransformer {
 			@Override
 			public String map(String internalName) {
 				Type type = Type.getType(com.pfichtner.github.maedle.transform.TaskExecutionException.class);
-				if (MAVEN_MOJO_FAILURE_EXCEPTION.equals(internalName)) {
+				if (MAVEN_MOJO_FAILURE_EXCEPTION.equals(Type.getObjectType(internalName))) {
 					return type.getInternalName();
-				} else if (MAVEN_MOJO_EXECUTION_EXCEPTION.equals(internalName)) {
+				} else if (MAVEN_MOJO_EXECUTION_EXCEPTION.equals(Type.getObjectType(internalName))) {
 					return type.getInternalName();
 				} else {
 					return internalName;

@@ -1,18 +1,20 @@
 package com.pfichtner.github.maedle.transform.uti.jar;
 
-import static java.nio.file.FileSystems.newFileSystem;
 import static java.nio.file.Files.walkFileTree;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.FileSystem;
+import java.nio.file.FileSystemAlreadyExistsException;
+import java.nio.file.FileSystems;
 import java.nio.file.FileVisitor;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JarReader {
+public class JarReader implements Closeable {
 
 	private final FileSystem fileSystem;
 
@@ -21,7 +23,17 @@ public class JarReader {
 	}
 
 	public JarReader(Path jar) throws IOException {
-		this(newFileSystem(URI.create("jar:file:" + jar.toUri().getPath()), jarProperties()));
+		this(getFileSystem(jar));
+	}
+
+	private static FileSystem getFileSystem(Path jar) throws IOException {
+		URI uri = URI.create("jar:file:" + jar.toUri().getPath());
+		try {
+			return FileSystems.newFileSystem(uri, jarProperties());
+		} catch (FileSystemAlreadyExistsException e) {
+			// no way to use the API other than this :-/
+			return FileSystems.getFileSystem(uri);
+		}
 	}
 
 	public JarReader(FileSystem fileSystem) {
@@ -41,6 +53,11 @@ public class JarReader {
 		jarProperties.put("create", "false");
 		jarProperties.put("encoding", "UTF-8");
 		return jarProperties;
+	}
+
+	@Override
+	public void close() throws IOException {
+		fileSystem.close();
 	}
 
 }

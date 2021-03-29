@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
@@ -30,33 +31,39 @@ public class JarBuilder implements Closeable {
 	public void add(File source, String name) throws IOException, FileNotFoundException {
 		if (source.isDirectory()) {
 			if (!name.isEmpty()) {
-				newEntry(source, name.endsWith("/") ? name : name + "/");
+				JarEntry entry = new JarEntry(name.endsWith("/") ? name : name + "/");
+				entry.setTime(source.lastModified());
+				target.putNextEntry(entry);
 				closeEntry();
 			}
 			for (File nestedFile : source.listFiles()) {
 				add(nestedFile);
 			}
 		} else {
-			newEntry(source, name);
-			writeToTarget(source);
-			closeEntry();
+			addEntry(source, name);
 		}
 	}
 
-	private void newEntry(File source, String name) throws IOException {
+	private void addEntry(File source, String name) throws IOException, FileNotFoundException {
 		JarEntry entry = new JarEntry(name);
 		entry.setTime(source.lastModified());
+		try (FileInputStream inputStream = new FileInputStream(source)) {
+			addEntry(entry, inputStream);
+		}
+	}
+
+	public void addEntry(JarEntry entry, InputStream inputStream) throws IOException, FileNotFoundException {
 		target.putNextEntry(entry);
+		writeToTarget(inputStream);
+		closeEntry();
 	}
 
 	private void closeEntry() throws IOException {
 		target.closeEntry();
 	}
 
-	private void writeToTarget(File source) throws IOException, FileNotFoundException {
-		try (FileInputStream inputStream = new FileInputStream(source)) {
-			IoUtils.copy(inputStream, target);
-		}
+	private void writeToTarget(InputStream inputStream) throws IOException, FileNotFoundException {
+		IoUtils.copy(inputStream, target);
 	}
 
 	@Override
