@@ -3,6 +3,7 @@ package com.pfichtner.github.maedle.transform;
 import static com.pfichtner.github.maedle.transform.Constants.MAVEN_MOJO_EXECUTION_EXCEPTION;
 import static com.pfichtner.github.maedle.transform.Constants.MAVEN_MOJO_FAILURE_EXCEPTION;
 import static com.pfichtner.github.maedle.transform.Constants.isMavenException;
+import static com.pfichtner.github.maedle.transform.util.AsmUtil.objectTypeToInternal;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.withInstructions;
 import static com.pfichtner.github.maedle.transform.util.CollectionUtil.nonNull;
 import static java.util.Collections.emptyMap;
@@ -59,16 +60,16 @@ public class StripMojoTransformer extends ClassNode {
 	};
 
 	private final ClassVisitor classVisitor;
-	private final String extensionClassName;
+	private final Type extensionClass;
 
 	private final MojoData mojoData;
 
 	private Remapper remapper = defaultRemapper;
 
-	public StripMojoTransformer(ClassVisitor classVisitor, String extensionClassName, MojoData mojoData) {
+	public StripMojoTransformer(ClassVisitor classVisitor, Type extensionClass, MojoData mojoData) {
 		super(ASM9);
 		this.classVisitor = classVisitor;
-		this.extensionClassName = extensionClassName;
+		this.extensionClass = extensionClass;
 		this.mojoData = mojoData;
 	}
 
@@ -81,9 +82,10 @@ public class StripMojoTransformer extends ClassNode {
 	public void accept(ClassVisitor classVisitor) {
 		nonNull(invisibleAnnotations).stream().filter(n -> Constants.MOJO_ANNOTATION.equals(Type.getType(n.desc)))
 				.findFirst().map(AsmUtil::toMap).orElse(emptyMap());
-		superName = "java/lang/Object";
+		superName = Type.getType(Object.class).getInternalName();
 		fields.removeAll(mojoData.getMojoParameterFields());
-		fields.add(new FieldNode(ACC_PRIVATE, "extension", "L" + extensionClassName + ";", null, null));
+		fields.add(new FieldNode(ACC_PRIVATE, "extension", objectTypeToInternal(extensionClass).getDescriptor(), null,
+				null));
 
 		methods.removeIf(AsmUtil::isNoArgConstructor);
 		methods.add(extensionClassConstructor());
@@ -116,9 +118,9 @@ public class StripMojoTransformer extends ClassNode {
 			if (n.getType() == FIELD_INSN) {
 				FieldInsnNode fin = (FieldInsnNode) n;
 				if (hasMovedToExtensionClass(fin)) {
-					m.instructions.insertBefore(n,
-							new FieldInsnNode(n.getOpcode(), fin.owner, "extension", "L" + extensionClassName + ";"));
-					fin.owner = extensionClassName;
+					m.instructions.insertBefore(n, new FieldInsnNode(n.getOpcode(), fin.owner, "extension",
+							objectTypeToInternal(extensionClass).getDescriptor()));
+					fin.owner = extensionClass.getInternalName();
 				}
 			}
 		});
@@ -138,13 +140,14 @@ public class StripMojoTransformer extends ClassNode {
 	}
 
 	private MethodNode extensionClassConstructor() {
-		return withInstructions(new MethodNode(ACC_PUBLIC, "<init>", "(L" + extensionClassName + ";)V", null, null),
+		return withInstructions(
+				new MethodNode(ACC_PUBLIC, "<init>", "(L" + extensionClass.getInternalName() + ";)V", null, null),
 				new VarInsnNode(ALOAD, 0), //
 				new MethodInsnNode(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false), //
 				new VarInsnNode(ALOAD, 0), //
 				new VarInsnNode(ALOAD, 1), //
 				new FieldInsnNode(PUTFIELD, StripMojoTransformer.this.name, "extension",
-						"L" + extensionClassName + ";"), //
+						objectTypeToInternal(extensionClass).getDescriptor()), //
 				new InsnNode(RETURN) //
 		);
 	}

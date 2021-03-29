@@ -18,6 +18,7 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Type;
 
 import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
 import com.github.stefanbirkner.systemlambda.Statement;
@@ -62,8 +63,8 @@ public class GreeterMojoTest {
 		ClassWriter classWriter = new ClassWriter(0);
 
 		MojoData mojoData = mojoData(new ClassReader(asStream(GreeterMojoTest.class)));
-		StripMojoTransformer mojoToGradleTransformer = new StripMojoTransformer(classWriter, extensionClass.getName(),
-				mojoData);
+		StripMojoTransformer mojoToGradleTransformer = new StripMojoTransformer(classWriter,
+				Type.getType(extensionClass), mojoData);
 		new ClassReader(asStream(GreeterMojoTest.class)).accept(mojoToGradleTransformer, 0);
 //		new ClassReader(asStream(extensionClass)).accept(mojoToGradleTransformer, 0);
 

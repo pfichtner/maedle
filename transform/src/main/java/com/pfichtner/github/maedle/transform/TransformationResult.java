@@ -24,7 +24,7 @@ public class TransformationResult {
 
 	private byte[] mojo() throws IOException {
 		ClassWriter cw = newClassWriter();
-		read(new StripMojoTransformer(cw, parameters.getExtensionClass().getInternalName(), parameters.getMojoData())
+		read(new StripMojoTransformer(cw, parameters.getExtensionClass(), parameters.getMojoData())
 				.withRemapper(parameters.getExceptionRemapper()));
 		return cw.toByteArray();
 	}

@@ -39,11 +39,11 @@ public final class AsmUtil {
 		return methodNode;
 	}
 
-	public static Type typeForClassName(String name) {
-		if (name.indexOf('/') >= 0) {
-			throw new IllegalArgumentException("Illegal class name " + name);
+	public static Type objectTypeToInternal(Type type) {
+		if (type.getSort() != Type.OBJECT) {
+			throw new IllegalArgumentException(type + " not of type object");
 		}
-		return Type.getType(name);
+		return Type.getType(type.getDescriptor());
 	}
 
 }
