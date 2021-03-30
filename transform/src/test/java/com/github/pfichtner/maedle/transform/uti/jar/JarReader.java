@@ -1,4 +1,4 @@
-package com.pfichtner.github.maedle.transform.uti.jar;
+package com.github.pfichtner.maedle.transform.uti.jar;
 
 import static java.nio.file.Files.walkFileTree;
 

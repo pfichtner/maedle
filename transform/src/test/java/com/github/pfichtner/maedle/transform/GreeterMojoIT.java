@@ -1,7 +1,7 @@
-package com.pfichtner.github.maedle.transform;
+package com.github.pfichtner.maedle.transform;
 
+import static com.github.pfichtner.maedle.transform.loader.MojoLoader.transformedInstance;
 import static com.pfichtner.github.maedle.transform.PluginWriter.createPlugin;
-import static com.pfichtner.github.maedle.transform.loader.MojoLoader.transformedInstance;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.constructor;
 
 import java.lang.reflect.Method;
@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.objectweb.asm.Type;
 
 import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
-import com.pfichtner.github.maedle.transform.loader.AsmClassLoader;
+import com.github.pfichtner.maedle.transform.loader.AsmClassLoader;
 
 public class GreeterMojoIT {
 

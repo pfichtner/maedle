@@ -1,4 +1,4 @@
-package com.pfichtner.github.maedle.transform.loader;
+package com.github.pfichtner.maedle.transform.loader;
 
 public class AsmClassLoader extends ClassLoader {
 

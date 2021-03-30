@@ -1,8 +1,8 @@
-package com.pfichtner.github.maedle.transform;
+package com.github.pfichtner.maedle.transform;
 
+import static com.github.pfichtner.maedle.transform.loader.MojoLoader.transformedInstance;
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOut;
 import static com.pfichtner.github.maedle.transform.MojoClassAnalyser.mojoData;
-import static com.pfichtner.github.maedle.transform.loader.MojoLoader.transformedInstance;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.constructor;
 import static java.util.Arrays.stream;
@@ -22,6 +22,8 @@ import org.objectweb.asm.Type;
 
 import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
 import com.github.stefanbirkner.systemlambda.Statement;
+import com.pfichtner.github.maedle.transform.MojoClassAnalyser;
+import com.pfichtner.github.maedle.transform.StripMojoTransformer;
 import com.pfichtner.github.maedle.transform.MojoClassAnalyser.MojoData;
 
 public class GreeterMojoTest {

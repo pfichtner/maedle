@@ -1,4 +1,4 @@
-package com.pfichtner.github.maedle.transform;
+package com.github.pfichtner.maedle.transform;
 
 public class TaskExecutionException extends Exception {
 

@@ -1,4 +1,4 @@
-package com.pfichtner.github.maedle.transform.uti.jar;
+package com.github.pfichtner.maedle.transform.uti.jar;
 
 import java.io.Closeable;
 import java.io.File;
@@ -14,14 +14,20 @@ import java.util.jar.Manifest;
 
 import com.pfichtner.github.maedle.transform.util.IoUtils;
 
-public class JarBuilder implements Closeable {
+public class JarWriter implements Closeable {
 
 	private JarOutputStream target;
 
-	public JarBuilder(OutputStream outputStream) throws IOException {
+	public JarWriter(OutputStream outputStream, boolean writeManifest) throws IOException {
+		target = writeManifest //
+				? new JarOutputStream(outputStream) //
+				: new JarOutputStream(outputStream, createManifest());
+	}
+
+	private Manifest createManifest() {
 		Manifest manifest = new Manifest();
 		manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
-		target = new JarOutputStream(outputStream, manifest);
+		return manifest;
 	}
 
 	public void add(File source) throws IOException {
@@ -33,7 +39,7 @@ public class JarBuilder implements Closeable {
 			if (!name.isEmpty()) {
 				JarEntry entry = new JarEntry(name.endsWith("/") ? name : name + "/");
 				entry.setTime(source.lastModified());
-				target.putNextEntry(entry);
+				putToTarget(entry);
 				closeEntry();
 			}
 			for (File nestedFile : source.listFiles()) {
@@ -53,17 +59,21 @@ public class JarBuilder implements Closeable {
 	}
 
 	public void addEntry(JarEntry entry, InputStream inputStream) throws IOException, FileNotFoundException {
-		target.putNextEntry(entry);
+		putToTarget(entry);
 		writeToTarget(inputStream);
 		closeEntry();
 	}
 
-	private void closeEntry() throws IOException {
-		target.closeEntry();
+	private void putToTarget(JarEntry entry) throws IOException {
+		target.putNextEntry(entry);
 	}
 
 	private void writeToTarget(InputStream inputStream) throws IOException, FileNotFoundException {
 		IoUtils.copy(inputStream, target);
+	}
+
+	private void closeEntry() throws IOException {
+		target.closeEntry();
 	}
 
 	@Override

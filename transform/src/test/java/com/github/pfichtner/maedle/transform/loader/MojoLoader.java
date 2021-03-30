@@ -1,4 +1,4 @@
-package com.pfichtner.github.maedle.transform.loader;
+package com.github.pfichtner.maedle.transform.loader;
 
 import static com.pfichtner.github.maedle.transform.Constants.MAVEN_MOJO_EXECUTION_EXCEPTION;
 import static com.pfichtner.github.maedle.transform.Constants.*;
@@ -35,7 +35,7 @@ public final class MojoLoader {
 		parameters.setExceptionRemapper(new Remapper() {
 			@Override
 			public String map(String internalName) {
-				Type type = Type.getType(com.pfichtner.github.maedle.transform.TaskExecutionException.class);
+				Type type = Type.getType(com.github.pfichtner.maedle.transform.TaskExecutionException.class);
 				if (MAVEN_MOJO_FAILURE_EXCEPTION.equals(Type.getObjectType(internalName))) {
 					return type.getInternalName();
 				} else if (MAVEN_MOJO_EXECUTION_EXCEPTION.equals(Type.getObjectType(internalName))) {
