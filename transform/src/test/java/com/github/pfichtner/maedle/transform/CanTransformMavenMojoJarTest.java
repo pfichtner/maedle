@@ -1,7 +1,6 @@
 package com.github.pfichtner.maedle.transform;
 
 import static com.pfichtner.github.maedle.transform.PluginWriter.createPlugin;
-import static com.pfichtner.github.maedle.transform.util.ClassUtils.asFile;
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.Files.copy;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,6 +35,7 @@ import com.github.pfichtner.maedle.transform.uti.jar.JarWriter;
 import com.pfichtner.github.maedle.transform.MojoClassAnalyser.MojoData;
 import com.pfichtner.github.maedle.transform.TransformationParameters;
 import com.pfichtner.github.maedle.transform.TransformationResult;
+import com.pfichtner.github.maedle.transform.util.ClassUtils;
 
 class CanTransformMavenMojoJarTest {
 
@@ -95,17 +95,17 @@ class CanTransformMavenMojoJarTest {
 		return jar;
 	}
 
-	private static Class<CanTransformMavenMojoJarTest> nonMojoClass() {
+	private static Class<?> nonMojoClass() {
 		return CanTransformMavenMojoJarTest.class;
 	}
 
-	private static Class<GreeterMojo> mojoClass() {
+	private static Class<?> mojoClass() {
 		return GreeterMojo.class;
 	}
 
 	private void addClass(JarWriter jarBuilder, Class<?> clazz)
 			throws IOException, FileNotFoundException, URISyntaxException {
-		jarBuilder.add(asFile(clazz), clazz.getName().replace('.', '/') + ".class");
+		jarBuilder.addEntry(new JarEntry(clazz.getName().replace('.', '/') + ".class"), ClassUtils.asStream(clazz));
 	}
 
 	private void transform(File jar, OutputStream outputStream) throws IOException {
