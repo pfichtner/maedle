@@ -1,9 +1,7 @@
 package com.pfichtner.github.maedle.transform.util;
 
-import static com.pfichtner.github.maedle.transform.util.IoUtils.toBytes;
 import static java.util.Arrays.stream;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,7 +17,7 @@ public final class ClassUtils {
 	}
 
 	public static InputStream asStream(Class<?> clazz) throws IOException {
-		return new ByteArrayInputStream(toBytes(clazz.getClassLoader().getResourceAsStream(pathToClass(clazz))));
+		return clazz.getClassLoader().getResourceAsStream(pathToClass(clazz));
 	}
 
 	public static File asFile(Class<?> clazz) throws IOException, URISyntaxException {
