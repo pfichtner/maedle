@@ -44,7 +44,7 @@ import com.pfichtner.github.maedle.MaedlePluginTemplate;
 public class PluginWriter {
 
 	public static byte[] createPlugin(String pluginClass, String extensionClass, String mojoClass, String taskName,
-			String extensionName) throws Exception {
+			String extensionName) {
 		return createPluginMixin(pluginClass, extensionClass, mojoClass, taskName, extensionName);
 	}
 
@@ -98,7 +98,7 @@ public class PluginWriter {
 	}
 
 	private static byte[] createPluginAsm(String pluginClass, String extensionClass, String mojoClass, String taskName,
-			String extensionName) throws Exception {
+			String extensionName) {
 		ClassWriter cw = new ClassWriter(0);
 		FieldVisitor fv;
 		MethodVisitor mv;

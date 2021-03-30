@@ -98,7 +98,7 @@ public class StripMojoTransformer extends ClassNode {
 
 		methods.forEach(this::changeFieldOwner);
 		methods.forEach(m -> m.exceptions = filterMavenExceptions(m.exceptions));
-		super.accept(mapMavenExceptions(classVisitor));
+		super.accept(remap(classVisitor));
 	}
 
 	@Override
@@ -130,7 +130,7 @@ public class StripMojoTransformer extends ClassNode {
 				&& mojoData.getMojoParameterFields().stream().map(f -> f.name).anyMatch(node.name::equals);
 	}
 
-	private ClassRemapper mapMavenExceptions(ClassVisitor classVisitor) {
+	private ClassRemapper remap(ClassVisitor classVisitor) {
 		return new ClassRemapper(classVisitor, remapper);
 	}
 

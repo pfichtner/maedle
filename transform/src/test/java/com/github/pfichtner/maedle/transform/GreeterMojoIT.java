@@ -38,7 +38,6 @@ public class GreeterMojoIT {
 	@Test
 	// TODO this should be done in a gradle project with the usage of testkit
 	void canTransformHeapWatchMojo() throws Exception {
-		// TODO Do not forget to write META-INF! ;-)
 		GreeterMojo greeterMojo = new GreeterMojo();
 		Object transformedMojoInstance = transformedInstance(greeterMojo);
 

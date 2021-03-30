@@ -13,7 +13,7 @@ public class TransformationParameters {
 	private final byte[] mojo;
 	private final MojoData mojoData;
 	private final Type extensionClass;
-	private Remapper exceptionRemapper;
+	private Remapper classRemapper;
 
 	public TransformationParameters(byte[] mojo) {
 		this.mojo = mojo;
@@ -34,12 +34,12 @@ public class TransformationParameters {
 		return extensionClass;
 	}
 
-	public Remapper getExceptionRemapper() {
-		return exceptionRemapper;
+	public Remapper getRemapper() {
+		return classRemapper;
 	}
 
-	public void setExceptionRemapper(Remapper exceptionRemapper) {
-		this.exceptionRemapper = exceptionRemapper;
+	public void setRemapper(Remapper remapper) {
+		this.classRemapper = remapper;
 	}
 
 }

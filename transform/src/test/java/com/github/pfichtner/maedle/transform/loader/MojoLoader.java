@@ -32,7 +32,7 @@ public final class MojoLoader {
 	 */
 	public static Object transformedInstance(Mojo mojo) throws Exception {
 		TransformationParameters parameters = new TransformationParameters(toBytes(asStream(mojo.getClass())));
-		parameters.setExceptionRemapper(new Remapper() {
+		parameters.setRemapper(new Remapper() {
 			@Override
 			public String map(String internalName) {
 				Type type = Type.getType(com.github.pfichtner.maedle.transform.TaskExecutionException.class);
