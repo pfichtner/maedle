@@ -4,6 +4,8 @@ import static com.pfichtner.github.maedle.transform.Constants.MAVEN_MOJO_EXECUTI
 import static com.pfichtner.github.maedle.transform.Constants.MAVEN_MOJO_FAILURE_EXCEPTION;
 import static com.pfichtner.github.maedle.transform.Constants.isMavenException;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.JAVA_LANG_OBJECT;
+import static com.pfichtner.github.maedle.transform.util.AsmUtil.findNode;
+import static com.pfichtner.github.maedle.transform.util.AsmUtil.isAload;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.objectTypeToInternal;
 import static com.pfichtner.github.maedle.transform.util.CollectionUtil.nonNull;
 import static java.util.Collections.emptyMap;
@@ -12,6 +14,7 @@ import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ALOAD;
 import static org.objectweb.asm.Opcodes.ASM9;
+import static org.objectweb.asm.Opcodes.GETFIELD;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 import static org.objectweb.asm.Opcodes.PUTFIELD;
 import static org.objectweb.asm.Opcodes.RETURN;
@@ -24,6 +27,7 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.ClassRemapper;
 import org.objectweb.asm.commons.Remapper;
+import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.FieldNode;
@@ -96,7 +100,7 @@ public class StripMojoTransformer extends ClassNode {
 		// val slf4jLogger = LoggerFactory.getLogger("some-logger")
 		// slf4jLogger.info("An info log message logged using SLF4j")
 
-		methods.forEach(this::changeFieldOwner);
+		methods.forEach(this::replaceFieldAccess);
 		methods.forEach(m -> m.exceptions = filterMavenExceptions(m.exceptions));
 		super.accept(remap(classVisitor));
 	}
@@ -112,12 +116,13 @@ public class StripMojoTransformer extends ClassNode {
 		accept(classVisitor);
 	}
 
-	private void changeFieldOwner(MethodNode m) {
-		m.instructions.forEach(n -> {
+	private void replaceFieldAccess(MethodNode methodNode) {
+		methodNode.instructions.forEach(n -> {
 			if (n.getType() == FIELD_INSN) {
 				FieldInsnNode fin = (FieldInsnNode) n;
 				if (hasMovedToExtensionClass(fin)) {
-					m.instructions.insertBefore(n, new FieldInsnNode(n.getOpcode(), fin.owner,
+					AbstractInsnNode aload0 = findNode(n, isAload(0), AbstractInsnNode::getPrevious);
+					methodNode.instructions.insert(aload0, new FieldInsnNode(GETFIELD, fin.owner,
 							FIELD_NAME_FOR_EXTENSION_INSTANCE, objectTypeToInternal(extensionClass).getDescriptor()));
 					fin.owner = extensionClass.getInternalName();
 				}

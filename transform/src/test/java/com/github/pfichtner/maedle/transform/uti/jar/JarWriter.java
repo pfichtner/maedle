@@ -14,6 +14,7 @@ import java.util.jar.Manifest;
 
 import com.pfichtner.github.maedle.transform.util.IoUtils;
 
+// add files to existing JAR: https://stackoverflow.com/questions/32353423/can-a-jar-file-be-updated-programmatically-without-rewriting-the-whole-file
 public class JarWriter implements Closeable {
 
 	private JarOutputStream target;

@@ -6,8 +6,8 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
-@Mojo(name = GreeterMojo.GOAL)
-public class GreeterMojo extends AbstractMojo {
+@Mojo(name = GreeterMojo2.GOAL)
+public class GreeterMojo2 extends AbstractMojo {
 
 	public static final String GOAL = "greet";
 
@@ -15,7 +15,15 @@ public class GreeterMojo extends AbstractMojo {
 	public String greeter = "pfichtner";
 
 	@Parameter(name = "message")
-	public String message = "Message from Mojo!";
+	private String message = "Message from Mojo!";
+
+	public void setMessage(String message) {
+		this.message = message;
+	}
+
+	public String getMessage() {
+		return message;
+	}
 
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		if (greeter == null) {

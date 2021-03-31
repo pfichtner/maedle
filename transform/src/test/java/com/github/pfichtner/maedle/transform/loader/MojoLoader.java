@@ -6,6 +6,8 @@ import static com.pfichtner.github.maedle.transform.util.BeanUtil.copyAttributes
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.toBytes;
 
+import java.io.IOException;
+
 import org.apache.maven.plugin.Mojo;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.Remapper;
@@ -15,8 +17,12 @@ import com.pfichtner.github.maedle.transform.TransformationResult;
 
 public final class MojoLoader {
 
-	private MojoLoader() {
-		super();
+	private final Mojo mojo;
+	private TransformationParameters parameters;
+
+	public MojoLoader(Mojo mojo) throws IOException {
+		this.mojo = mojo;
+		this.parameters = new TransformationParameters(toBytes(asStream(mojo.getClass())));
 	}
 
 	/**
@@ -30,8 +36,11 @@ public final class MojoLoader {
 	 * @return
 	 * @throws Exception
 	 */
-	public static Object transformedInstance(Mojo mojo) throws Exception {
-		TransformationParameters parameters = new TransformationParameters(toBytes(asStream(mojo.getClass())));
+	public Object transformedInstance() throws Exception {
+		return load(mojo, parameters, transform());
+	}
+
+	public TransformationResult transform() throws IOException {
 		parameters.setRemapper(new Remapper() {
 			@Override
 			public String map(String internalName) {
@@ -45,7 +54,7 @@ public final class MojoLoader {
 				}
 			}
 		});
-		return load(mojo, parameters, new TransformationResult(parameters));
+		return new TransformationResult(parameters);
 	}
 
 	private static Object load(Mojo originalMojo, TransformationParameters parameters, TransformationResult result)

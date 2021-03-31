@@ -1,6 +1,5 @@
 package com.github.pfichtner.maedle.transform;
 
-import static com.github.pfichtner.maedle.transform.loader.MojoLoader.transformedInstance;
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOut;
 import static com.pfichtner.github.maedle.transform.MojoClassAnalyser.mojoData;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
@@ -11,9 +10,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import org.apache.maven.plugin.Mojo;
 import org.apache.maven.plugin.MojoFailureException;
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassReader;
@@ -21,10 +22,10 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Type;
 
 import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
+import com.github.pfichtner.maedle.transform.loader.MojoLoader;
 import com.github.stefanbirkner.systemlambda.Statement;
-import com.pfichtner.github.maedle.transform.MojoClassAnalyser;
-import com.pfichtner.github.maedle.transform.StripMojoTransformer;
 import com.pfichtner.github.maedle.transform.MojoClassAnalyser.MojoData;
+import com.pfichtner.github.maedle.transform.StripMojoTransformer;
 
 public class GreeterMojoTest {
 
@@ -58,8 +59,8 @@ public class GreeterMojoTest {
 
 	@Test
 	void worksForNonMojoClasses() throws Exception {
-		GreeterMojo heapWatchMojo = new GreeterMojo();
-		Object transformedMojoInstance = transformedInstance(heapWatchMojo);
+		GreeterMojo greeterMojo = new GreeterMojo();
+		Object transformedMojoInstance = new MojoLoader(greeterMojo).transformedInstance();
 		Class<?> extensionClass = extensionClassOf(transformedMojoInstance);
 //		
 		ClassWriter classWriter = new ClassWriter(0);
@@ -76,27 +77,27 @@ public class GreeterMojoTest {
 
 	@Test
 	void transformedMojoHasSameBehaviorLikeOriginalMojo() throws Exception {
-		GreeterMojo heapWatchMojo = new GreeterMojo();
-		Object transformedMojoInstance = transformedInstance(heapWatchMojo);
-		haveSameSysouts(() -> executeMojo(heapWatchMojo), () -> executeMojo(transformedMojoInstance));
+		GreeterMojo greeterMojo = new GreeterMojo();
+		Object transformedMojoInstance = new MojoLoader(greeterMojo).transformedInstance();
+		haveSameSysouts(() -> executeMojo(greeterMojo), () -> executeMojo(transformedMojoInstance));
 	}
 
 	@Test
 	// TODO create tests where Mojo fields are public AND where Mojo fields are
 	// private and accessed by getters/setters
 	void fieldInitializersAreCopiedFromMojoToExtensionClass() throws Exception {
-		GreeterMojo heapWatchMojo = new GreeterMojo();
-		heapWatchMojo.greeter = "Stranger";
-		Object transformedMojoInstance = transformedInstance(heapWatchMojo);
-		haveSameSysouts(() -> executeMojo(heapWatchMojo), () -> executeMojo(transformedMojoInstance));
+		GreeterMojo greeterMojo = new GreeterMojo();
+		greeterMojo.greeter = "Stranger";
+		Object transformedMojoInstance = new MojoLoader(greeterMojo).transformedInstance();
+		haveSameSysouts(() -> executeMojo(greeterMojo), () -> executeMojo(transformedMojoInstance));
 	}
 
 	@Test
 	void exceptionsIsMapped() throws Exception {
-		GreeterMojo heapWatchMojo = new GreeterMojo();
-		heapWatchMojo.greeter = null;
-		Object transformedMojoInstance = transformedInstance(heapWatchMojo);
-		Throwable e1 = getExceptionThrown(() -> executeMojo(heapWatchMojo));
+		GreeterMojo greeterMojo = new GreeterMojo();
+		greeterMojo.greeter = null;
+		Object transformedMojoInstance = new MojoLoader(greeterMojo).transformedInstance();
+		Throwable e1 = getExceptionThrown(() -> executeMojo(greeterMojo));
 		Throwable e2 = getExceptionThrown(() -> executeMojo(transformedMojoInstance));
 		assertAll( //
 				() -> assertThat(e1).hasMessage(e2.getMessage()).isInstanceOf(MojoFailureException.class), //
@@ -107,23 +108,31 @@ public class GreeterMojoTest {
 	@Test
 	void verifyExtensionClassHasNoMethods() throws Exception {
 		GreeterMojo greeterMojo = new GreeterMojo();
-		Class<?> extensionClass = extensionClassOf(transformedInstance(greeterMojo));
+		Class<?> extensionClass = transformedExtensionClass(greeterMojo);
 		assertThat(stream(extensionClass.getDeclaredMethods()).map(Method::getName)).isEmpty();
 	}
 
 	@Test
 	void verifyExtensionClassFieldsHaveNoMavenAnnotations() throws Exception {
 		GreeterMojo greeterMojo = new GreeterMojo();
-		Class<?> extensionClass = extensionClassOf(transformedInstance(greeterMojo));
+		Class<?> extensionClass = transformedExtensionClass(greeterMojo);
 		assertThat(stream(extensionClass.getDeclaredFields()).map(f -> stream(f.getAnnotations())).flatMap(identity()))
 				.isEmpty();
 	}
 
-	private Class<?> extensionClassOf(Object transformedMojoInstance) {
+	private static Object transformedInstance(Mojo mojo) throws Exception, IOException {
+		return new MojoLoader(mojo).transformedInstance();
+	}
+
+	private static Class<?> transformedExtensionClass(Mojo mojo) throws Exception, IOException {
+		return extensionClassOf(transformedInstance(mojo));
+	}
+
+	private static Class<?> extensionClassOf(Object transformedMojoInstance) {
 		return typeOfSingleArgConstructor(transformedMojoInstance);
 	}
 
-	private Class<?> typeOfSingleArgConstructor(Object transformedMojoInstance) {
+	private static Class<?> typeOfSingleArgConstructor(Object transformedMojoInstance) {
 		return constructor(transformedMojoInstance.getClass(), c -> c.getParameterCount() == 1).getParameters()[0]
 				.getType();
 	}

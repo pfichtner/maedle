@@ -1,7 +1,6 @@
 package com.pfichtner.github.maedle.transform;
 
 import static org.objectweb.asm.ClassReader.EXPAND_FRAMES;
-import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
 import static org.objectweb.asm.ClassWriter.COMPUTE_MAXS;
 
 import java.io.IOException;
@@ -41,7 +40,7 @@ public class TransformationResult {
 	}
 
 	private ClassWriter newClassWriter() {
-		return new ClassWriter(COMPUTE_MAXS | COMPUTE_FRAMES);
+		return new ClassWriter(COMPUTE_MAXS);
 	}
 
 	public byte[] getTransformedMojo() {

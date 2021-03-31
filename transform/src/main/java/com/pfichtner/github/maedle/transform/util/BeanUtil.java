@@ -15,7 +15,7 @@ public final class BeanUtil {
 			stream(from.getClass().getDeclaredFields()).filter(f -> f.getName().equals(field.getName())).findFirst()
 					.ifPresent(f -> {
 						try {
-							field.set(to, f.get(from));
+							accessible(field).set(to, accessible(f).get(from));
 						} catch (IllegalArgumentException | IllegalAccessException e) {
 							throw new RuntimeException(e);
 						}
@@ -23,6 +23,11 @@ public final class BeanUtil {
 
 		}
 		return to;
+	}
+
+	private static Field accessible(Field field) {
+		field.setAccessible(true);
+		return field;
 	}
 
 }

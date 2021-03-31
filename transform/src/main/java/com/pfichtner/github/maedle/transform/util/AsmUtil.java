@@ -1,17 +1,25 @@
 package com.pfichtner.github.maedle.transform.util;
 
 import static java.util.Arrays.stream;
+import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
+import static org.objectweb.asm.Opcodes.ACC_PROTECTED;
+import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
+import static org.objectweb.asm.Opcodes.ALOAD;
+import static org.objectweb.asm.tree.AbstractInsnNode.VAR_INSN;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.VarInsnNode;
 
 public final class AsmUtil {
 
@@ -50,4 +58,24 @@ public final class AsmUtil {
 		return stream(methodNode.instructions.toArray());
 	}
 
+	public static Predicate<AbstractInsnNode> isAload(int var) {
+		return n -> ((n.getOpcode() == ALOAD) && (n.getType() == VAR_INSN) && (((VarInsnNode) n).var == var));
+	}
+
+	public static AbstractInsnNode findNode(AbstractInsnNode node, Predicate<AbstractInsnNode> predicate,
+			Function<AbstractInsnNode, AbstractInsnNode> getNode) {
+		for (node = getNode.apply(node); node != null; node = getNode.apply(node)) {
+			if (predicate.test(node)) {
+				return node;
+			}
+		}
+		return null;
+	}
+
+	public static int makePublic(int acc) {
+		acc &= ~ACC_PRIVATE;
+		acc &= ~ACC_PROTECTED;
+		acc |= ACC_PUBLIC;
+		return acc;
+	}
 }

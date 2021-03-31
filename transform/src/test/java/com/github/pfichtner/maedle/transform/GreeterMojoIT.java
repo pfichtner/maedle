@@ -1,6 +1,5 @@
 package com.github.pfichtner.maedle.transform;
 
-import static com.github.pfichtner.maedle.transform.loader.MojoLoader.transformedInstance;
 import static com.pfichtner.github.maedle.transform.PluginWriter.createPlugin;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.constructor;
 
@@ -11,6 +10,7 @@ import org.objectweb.asm.Type;
 
 import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
 import com.github.pfichtner.maedle.transform.loader.AsmClassLoader;
+import com.github.pfichtner.maedle.transform.loader.MojoLoader;
 
 public class GreeterMojoIT {
 
@@ -39,7 +39,7 @@ public class GreeterMojoIT {
 	// TODO this should be done in a gradle project with the usage of testkit
 	void canTransformHeapWatchMojo() throws Exception {
 		GreeterMojo greeterMojo = new GreeterMojo();
-		Object transformedMojoInstance = transformedInstance(greeterMojo);
+		Object transformedMojoInstance = new MojoLoader(greeterMojo).transformedInstance();
 
 		String extensionType = Type.getInternalName(typeOfSingleArgConstructor(transformedMojoInstance));
 		String mojoType = Type.getInternalName(transformedMojoInstance.getClass());

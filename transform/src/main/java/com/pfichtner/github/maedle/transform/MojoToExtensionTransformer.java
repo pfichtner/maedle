@@ -10,10 +10,12 @@ import static org.objectweb.asm.Opcodes.PUTFIELD;
 import static org.objectweb.asm.tree.AbstractInsnNode.FIELD_INSN;
 import static org.objectweb.asm.tree.AbstractInsnNode.METHOD_INSN;
 
+import java.util.BitSet;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.ClassRemapper;
 import org.objectweb.asm.commons.Remapper;
 import org.objectweb.asm.tree.AbstractInsnNode;
@@ -24,6 +26,7 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import com.pfichtner.github.maedle.transform.MojoClassAnalyser.MojoData;
+import com.pfichtner.github.maedle.transform.util.AsmUtil;
 
 public class MojoToExtensionTransformer extends ClassNode {
 
@@ -36,6 +39,7 @@ public class MojoToExtensionTransformer extends ClassNode {
 		nonNull(invisibleAnnotations).removeIf(isMojoAnnotation);
 		nonNull(visibleAnnotations).removeIf(isMojoAnnotation);
 		nonNull(fields).removeIf(f -> !isMojoAttribute(f));
+		nonNull(fields).stream().filter(this::isMojoAttribute).forEach(MojoToExtensionTransformer::makePublic);
 		nonNull(methods).removeIf(m -> !isConstructor(m) && !refSingleFieldOnly(m));
 		nonNull(methods).stream().filter(m -> isConstructor(m)).forEach(this::fixConstructor);
 		accept(classVisitor);
@@ -47,6 +51,10 @@ public class MojoToExtensionTransformer extends ClassNode {
 
 	private boolean isMojoAttribute(String fieldName) {
 		return mojoData.getMojoParameterFields().stream().map(n -> n.name).anyMatch(fieldName::equals);
+	}
+
+	private static void makePublic(FieldNode fieldNode) {
+		fieldNode.access = AsmUtil.makePublic(fieldNode.access);
 	}
 
 	private boolean refSingleFieldOnly(MethodNode methodNode) {
