@@ -4,7 +4,6 @@ import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOut;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.constructor;
 import static java.util.Arrays.stream;
 import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -36,13 +35,12 @@ public class GreeterMojoTest2 {
 	}
 
 	@Test
-	void verifyExtensionClassHasSameMethodsLikeMojo() throws Exception {
+	void verifyExtensionClassHasNoMethods() throws Exception {
 		GreeterMojo2 greeterMojo = new GreeterMojo2();
 		Class<?> extensionClass = extensionClassOf(new MojoLoader(greeterMojo).transformedInstance());
-		assertThat(stream(extensionClass.getDeclaredMethods()).map(Method::getName))
-				.containsExactlyInAnyOrderElementsOf(stream(greeterMojo.getClass().getDeclaredMethods())
-						.map(Method::getName).filter(n -> !n.equals("execute")).collect(toList()));
+		assertThat(stream(extensionClass.getDeclaredMethods()).map(Method::getName)).isEmpty();
 	}
+
 
 	@Test
 	void verifyExtensionClassFieldsHaveNoMavenAnnotations() throws Exception {
