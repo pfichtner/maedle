@@ -48,7 +48,7 @@ public class GreeterMojoExtension {
 	public String message = "Message from Mojo!";
 }
 ```
-...and thr rewritten mojo class...
+...and the rewritten mojo class...
 ```
 public class GreeterMojoRewritten {
 
@@ -101,5 +101,4 @@ public void apply(Project project) {
 	Task task = project.task(TASK);
 	task.dependsOn("jar").doLast(t -> execute(extension));
 }
-
 ```
