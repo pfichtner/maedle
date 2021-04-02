@@ -68,12 +68,12 @@ public class GreeterMojoIT {
 
 	@Test
 	void canTransformHeapWatchMojo(@TempDir File testProjectDir) throws Exception {
-		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.maedle.greetingtest", "greet", "greeting");
+		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.maedle.mojotogradle", "greet", "greeting");
 		createProjectSettingsFile(testProjectDir);
 		createProjectBuildFile(testProjectDir, pluginInfo);
 		File pluginJar = transformMojoAndWriteJar(testProjectDir, GreeterMojo.class, pluginInfo);
-		try (ToolingAPI toolingAPI = new ToolingAPI(testProjectDir.getAbsolutePath())) {
-			String stdOut = toolingAPI.executeTask(pluginJar, pluginInfo.taskName);
+		try (GradleTestKit testKit = new GradleTestKit(testProjectDir.getAbsolutePath())) {
+			String stdOut = testKit.executeTask(pluginJar, pluginInfo.taskName);
 			assertThat(stdOut) //
 					.contains("> Task :" + pluginInfo.taskName) //
 					.contains("Hello, integration test") //
@@ -83,13 +83,13 @@ public class GreeterMojoIT {
 
 	}
 
-	private File createProjectSettingsFile(File baseDir) throws IOException {
+	private static File createProjectSettingsFile(File baseDir) throws IOException {
 		File settingsFile = new File(baseDir, "settings.gradle");
 		writeFile(settingsFile, "rootProject.name = 'any-name'");
 		return settingsFile;
 	}
 
-	private File transformMojoAndWriteJar(File baseDir, Class<? extends Mojo> mojoClass, PluginInfo pluginInfo)
+	private static File transformMojoAndWriteJar(File baseDir, Class<? extends Mojo> mojoClass, PluginInfo pluginInfo)
 			throws IOException, FileNotFoundException {
 		File pluginJar = new File(baseDir, "plugin.jar");
 		TransformationParameters parameters = new TransformationParameters(toBytes(asStream(mojoClass)));
@@ -115,6 +115,10 @@ public class GreeterMojoIT {
 		return pluginJar;
 	}
 
+	private static String toPath(Type type) {
+		return type.getInternalName() + ".class";
+	}
+
 	private static File createProjectBuildFile(File testProjectDir, PluginInfo pluginInfo) throws IOException {
 		File buildFile = new File(testProjectDir, "build.gradle");
 		writeFile(buildFile, buildFileContent(pluginInfo).stream().collect(joining("\n")));
@@ -129,10 +133,6 @@ public class GreeterMojoIT {
 				format("	message = \"%s\"", "Test success!"), //
 				format("}") //
 		);
-	}
-
-	private String toPath(Type type) {
-		return type.getInternalName() + ".class";
 	}
 
 }

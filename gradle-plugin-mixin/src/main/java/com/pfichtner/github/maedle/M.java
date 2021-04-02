@@ -1,15 +1,19 @@
 package com.pfichtner.github.maedle;
 
+/**
+ * This class has no need expect to compile the mixin class
+ * {@link MaedlePluginTemplate}.
+ */
 public class M {
 
-	private E extension;
+	private final E e;
 
-	public M(E extension) {
-		this.extension = extension;
+	public M(E e) {
+		this.e = e;
 	}
 
 	public void execute() {
-		System.out.println("Hello, " + extension.greeter);
-		System.out.println("I have a message for You: " + extension.message);
+		System.out.println(e);
 	}
+
 }
