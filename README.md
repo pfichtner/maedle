@@ -1,6 +1,7 @@
 # maedle
 
 A maven plugin that transforms a maven plugin into a gradle plugin (plugin will be available soon as gradle plugin). ;-)
+The transformation is done in bytecode so it is independent of the programming langauge the mojo was written. So maedle should work for mojos written in Java, Groovy, Scala, Kotlin and any other language that compiles to JVM bytecode. 
 The word "Maedle" is a contamination of maven and gradle and sounds very similar to the german word for a young girl. 
 
 What is maedle capable of? 
