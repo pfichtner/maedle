@@ -141,6 +141,9 @@ public class StripMojoTransformer extends ClassNode {
 							new MethodInsnNode(INVOKESTATIC, "org/gradle/api/logging/Logging", "getLogger",
 									"(Ljava/lang/Class;)Lorg/gradle/api/logging/Logger;"));
 				} else if (isLogCall(methodInsn)) {
+					// maven accepts CharSequences, gradle Strings, this SHOULD normaly not be a
+					// problem: Better solution would be to transform CharSequences to Strings (if
+					// not already instance of)
 					methodInsn.owner = "org/gradle/api/logging/Logger";
 					methodInsn.desc = "(Ljava/lang/String;)V";
 				}

@@ -23,11 +23,7 @@ public class GreeterMojo3IT {
 		File pluginJar = transformMojoAndWriteJar(testProjectDir, GreeterMojo3.class, pluginInfo);
 		try (GradleTestKit testKit = new GradleTestKit(testProjectDir.getAbsolutePath())) {
 			String stdOut = testKit.executeTask(pluginJar, pluginInfo.taskName);
-			assertThat(stdOut) //
-					.contains("> Task :" + pluginInfo.taskName) //
-					.contains("Hello, integration test") //
-					.contains("I have a message for you: Test success!") //
-			;
+			assertThat(stdOut).contains("Warn log statement");
 		}
 
 	}
