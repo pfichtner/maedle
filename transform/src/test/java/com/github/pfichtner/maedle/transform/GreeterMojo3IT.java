@@ -1,8 +1,8 @@
 package com.github.pfichtner.maedle.transform;
 
-import static com.github.pfichtner.maedle.transform.PluginInfo.createProjectBuildFile;
-import static com.github.pfichtner.maedle.transform.PluginInfo.createProjectSettingsFile;
-import static com.github.pfichtner.maedle.transform.PluginInfo.transformMojoAndWriteJar;
+import static com.github.pfichtner.maedle.transform.PluginUtil.createProjectBuildFile;
+import static com.github.pfichtner.maedle.transform.PluginUtil.createProjectSettingsFile;
+import static com.github.pfichtner.maedle.transform.PluginUtil.transformMojoAndWriteJar;
 import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -25,7 +25,6 @@ public class GreeterMojo3IT {
 			String stdOut = testKit.executeTask(pluginJar, pluginInfo.taskName);
 			assertThat(stdOut).contains("Warn log statement");
 		}
-
 	}
 
 }

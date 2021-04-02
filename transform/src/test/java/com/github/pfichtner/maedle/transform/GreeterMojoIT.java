@@ -1,8 +1,8 @@
 package com.github.pfichtner.maedle.transform;
 
-import static com.github.pfichtner.maedle.transform.PluginInfo.createProjectBuildFile;
-import static com.github.pfichtner.maedle.transform.PluginInfo.createProjectSettingsFile;
-import static com.github.pfichtner.maedle.transform.PluginInfo.transformMojoAndWriteJar;
+import static com.github.pfichtner.maedle.transform.PluginUtil.createProjectBuildFile;
+import static com.github.pfichtner.maedle.transform.PluginUtil.createProjectSettingsFile;
+import static com.github.pfichtner.maedle.transform.PluginUtil.transformMojoAndWriteJar;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
@@ -55,7 +55,6 @@ public class GreeterMojoIT {
 					.contains("I have a message for you: " + messageText) //
 			;
 		}
-
 	}
 
 	private Map<Object, Object> createData(String greeterText, String messageText) {
