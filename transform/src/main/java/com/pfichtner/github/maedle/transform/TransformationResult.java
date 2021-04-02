@@ -23,8 +23,8 @@ public class TransformationResult {
 
 	private byte[] mojo() throws IOException {
 		ClassWriter cw = newClassWriter();
-		read(new StripMojoTransformer(cw, parameters.getExtensionClass(), parameters.getMojoData())
-				.withRemapper(parameters.getRemapper()));
+		read(new StripMojoTransformer(cw, parameters.getMojoClass(), parameters.getExtensionClass(),
+				parameters.getMojoData()).withRemapper(parameters.getRemapper()));
 		return cw.toByteArray();
 	}
 

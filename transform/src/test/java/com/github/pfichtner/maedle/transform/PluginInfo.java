@@ -47,7 +47,7 @@ public class PluginInfo {
 	static File transformMojoAndWriteJar(File baseDir, Class<? extends Mojo> mojoClass, PluginInfo pluginInfo)
 			throws IOException, FileNotFoundException {
 		File pluginJar = new File(baseDir, "plugin.jar");
-		TransformationParameters parameters = new TransformationParameters(toBytes(asStream(mojoClass)));
+		TransformationParameters parameters = TransformationParameters.fromMojo(toBytes(asStream(mojoClass)));
 		TransformationResult result = new TransformationResult(parameters);
 		MojoData mojoData = parameters.getMojoData();
 		try (JarWriter jarWriter = new JarWriter(new FileOutputStream(pluginJar), false)) {

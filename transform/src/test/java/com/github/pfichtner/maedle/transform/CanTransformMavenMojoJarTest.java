@@ -1,6 +1,7 @@
 package com.github.pfichtner.maedle.transform;
 
 import static com.pfichtner.github.maedle.transform.PluginWriter.createPlugin;
+import static com.pfichtner.github.maedle.transform.TransformationParameters.fromMojo;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.Files.copy;
@@ -28,7 +29,6 @@ import java.util.jar.JarEntry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.commons.Remapper;
 
 import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
 import com.github.pfichtner.maedle.transform.uti.jar.JarReader;
@@ -125,9 +125,10 @@ class CanTransformMavenMojoJarTest {
 				boolean transformed = false;
 				if (matcher.matches(file)) {
 					// TODO use OO -> JaEntry[] entries getTransformer().transform(...)
-					TransformationParameters parameters = new TransformationParameters(content);
+					TransformationParameters parameters = fromMojo(content);
 					MojoData mojoData = parameters.getMojoData();
-					addMojoRemapping(parameters, mojoData);
+					parameters = parameters
+							.withMojoClass(Type.getObjectType(mojoData.getMojoType().getInternalName() + "Rewritten"));
 					if (mojoData.isMojo()) {
 						writeTransformed(jarWriter, parameters, mojoData);
 						transformed = true;
@@ -146,7 +147,7 @@ class CanTransformMavenMojoJarTest {
 					throws IOException, FileNotFoundException {
 				TransformationResult result = new TransformationResult(parameters);
 				// entry.setTime(path.);
-				jarWriter.addEntry(new JarEntry(toPath(mojoData.getMojoType(), "Rewritten")),
+				jarWriter.addEntry(new JarEntry(toPath(parameters.getMojoClass())),
 						new ByteArrayInputStream(result.getTransformedMojo()));
 				jarWriter.addEntry(new JarEntry(toPath(parameters.getExtensionClass())),
 						new ByteArrayInputStream(result.getExtension()));
@@ -168,27 +169,7 @@ class CanTransformMavenMojoJarTest {
 				return type.getInternalName() + ".class";
 			}
 
-			private String toPath(Type type, String append) {
-				return type.getInternalName() + append + ".class";
-			}
-
 		};
-	}
-
-	private void addMojoRemapping(TransformationParameters parameters, MojoData mojoData) {
-		Remapper remapper = parameters.getRemapper();
-		parameters.setRemapper(new Remapper() {
-			@Override
-			public String map(String internalName) {
-				if (mojoData.getMojoType().equals(Type.getObjectType(internalName))) {
-					return internalName + "Rewritten";
-				} else if (remapper == null) {
-					return internalName;
-				} else {
-					return remapper.map(internalName);
-				}
-			}
-		});
 	}
 
 	private static byte[] read(Path file) throws IOException {

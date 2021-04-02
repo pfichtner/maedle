@@ -22,7 +22,7 @@ public final class MojoLoader {
 
 	public MojoLoader(Mojo mojo) throws IOException {
 		this.mojo = mojo;
-		this.parameters = new TransformationParameters(toBytes(asStream(mojo.getClass())));
+		this.parameters = TransformationParameters.fromMojo(toBytes(asStream(mojo.getClass())));
 	}
 
 	/**
@@ -41,7 +41,7 @@ public final class MojoLoader {
 	}
 
 	public TransformationResult transform() throws IOException {
-		parameters.setRemapper(new Remapper() {
+		parameters.withRemapper(new Remapper() {
 			@Override
 			public String map(String internalName) {
 				Type type = Type.getType(com.github.pfichtner.maedle.transform.TaskExecutionException.class);

@@ -68,15 +68,17 @@ public class StripMojoTransformer extends ClassNode {
 	};
 
 	private final ClassVisitor classVisitor;
+	private final Type mojoClass;
 	private final Type extensionClass;
 
 	private final MojoData mojoData;
 
 	private Remapper remapper = defaultRemapper;
 
-	public StripMojoTransformer(ClassVisitor classVisitor, Type extensionClass, MojoData mojoData) {
+	public StripMojoTransformer(ClassVisitor classVisitor, Type mojoClass, Type extensionClass, MojoData mojoData) {
 		super(ASM9);
 		this.classVisitor = classVisitor;
+		this.mojoClass = mojoClass;
 		this.extensionClass = extensionClass;
 		this.mojoData = mojoData;
 	}
@@ -100,7 +102,7 @@ public class StripMojoTransformer extends ClassNode {
 
 		methods.forEach(this::mapMavenToGradleLogging);
 		methods.forEach(this::replaceFieldAccess);
-		methods.forEach(m -> m.exceptions = filterMavenExceptions(m.exceptions));
+		methods.forEach(m -> m.exceptions = removeMavenExceptions(m.exceptions));
 		super.accept(remap(classVisitor));
 	}
 
@@ -165,10 +167,17 @@ public class StripMojoTransformer extends ClassNode {
 	}
 
 	private ClassRemapper remap(ClassVisitor classVisitor) {
-		return new ClassRemapper(classVisitor, remapper);
+		return new ClassRemapper(new ClassRemapper(classVisitor, new Remapper() {
+			@Override
+			public String map(String internalName) {
+				return Type.getObjectType(internalName).equals(mojoData.getMojoType()) //
+						? mojoClass.getInternalName() //
+						: internalName;
+			}
+		}), remapper);
 	}
 
-	private List<String> filterMavenExceptions(List<String> exceptions) {
+	private static List<String> removeMavenExceptions(List<String> exceptions) {
 		return exceptions.stream().filter(t -> !isMavenException(Type.getObjectType(t))).collect(toList());
 	}
 

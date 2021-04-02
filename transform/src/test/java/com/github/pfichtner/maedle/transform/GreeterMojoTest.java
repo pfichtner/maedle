@@ -67,7 +67,7 @@ public class GreeterMojoTest {
 
 		MojoData mojoData = mojoData(new ClassReader(asStream(GreeterMojoTest.class)));
 		StripMojoTransformer mojoToGradleTransformer = new StripMojoTransformer(classWriter,
-				Type.getType(extensionClass), mojoData);
+				mojoData.getMojoType(), Type.getType(extensionClass), mojoData);
 		new ClassReader(asStream(GreeterMojoTest.class)).accept(mojoToGradleTransformer, 0);
 //		new ClassReader(asStream(extensionClass)).accept(mojoToGradleTransformer, 0);
 
