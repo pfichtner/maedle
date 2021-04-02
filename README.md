@@ -14,3 +14,21 @@ Inside a JAR it searches for classes annotated with maven's ```Mojo``` annotatio
 - Exceptions org.apache.maven.plugin.MojoFailureException org.apache.maven.plugin.MojoExecutionException are replaced by org.gradle.api.tasks.TaskExecutionException
 - Calls to maven's Logger will be replaced by call's to a Gradle Logger
 - META-INF entry is created which holds the information for gradle to be able to use the plugin
+
+Not yet implemented
+- Only working if Mojo extends ```AbstractMojo``` (getLog)
+- transform MavenProject, access jar file
+```
+Jar jarTask = (Jar) project.task("jar");
+File jarFile = jarTask.getArchiveFile().getOrNull().getAsFile();
+```
+- support for ```dependsOn```
+```
+@Override
+public void apply(Project project) {
+	GreetingPluginExtension extension = project.getExtensions().create(EXTENSION, GreetingPluginExtension.class);
+	Task task = project.task(TASK);
+	task.dependsOn("jar").doLast(t -> execute(extension));
+}
+
+```
