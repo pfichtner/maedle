@@ -64,11 +64,4 @@ public class GreeterMojoIT {
 		return data;
 	}
 
-	private static Map<Object, Object> entries() {
-		Map<Object, Object> data = new HashMap<>();
-		data.put("greeter", "integration test");
-		data.put("message", "Test success!");
-		return data;
-	}
-
 }

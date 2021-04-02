@@ -12,18 +12,16 @@ import static java.util.stream.Collectors.joining;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.jar.JarEntry;
 
 import org.apache.maven.plugin.Mojo;
 import org.objectweb.asm.Type;
 
-import com.github.pfichtner.maedle.transform.uti.jar.JarWriter;
+import com.github.pfichtner.maedle.transform.util.jar.JarModifier;
 import com.pfichtner.github.maedle.transform.TransformationParameters;
 import com.pfichtner.github.maedle.transform.TransformationResult;
 
@@ -42,20 +40,21 @@ public final class PluginUtil {
 	public static File transformMojoAndWriteJar(File baseDir, Class<? extends Mojo> mojoClass, PluginInfo pluginInfo)
 			throws IOException, FileNotFoundException {
 		File pluginJar = createTempFile("plugin-", ".jar", baseDir);
+		pluginJar.delete();
 		TransformationParameters parameters = fromMojo(toBytes(asStream(mojoClass)));
 		TransformationResult result = new TransformationResult(parameters);
-		try (JarWriter jarWriter = new JarWriter(new FileOutputStream(pluginJar), false)) {
+		try (JarModifier jarWriter = new JarModifier(pluginJar, true)) {
 			Type mojoType = parameters.getMojoClass();
 
-			jarWriter.addEntry(newJarEntry(mojoType), stream(result.getTransformedMojo()));
-			jarWriter.addEntry(newJarEntry(parameters.getExtensionClass()), stream(result.getExtension()));
+			jarWriter.add(stream(result.getTransformedMojo()), newJarEntry(mojoType));
+			jarWriter.add(stream(result.getExtension()), newJarEntry(parameters.getExtensionClass()));
 
 			Type pluginType = Type.getObjectType(mojoType.getInternalName() + "GradlePlugin");
-			jarWriter.addEntry(newJarEntry(pluginType), stream(createPlugin(pluginType, parameters.getExtensionClass(),
-					mojoType, pluginInfo.taskName, pluginInfo.extensionName)));
+			jarWriter.add(stream(createPlugin(pluginType, parameters.getExtensionClass(), mojoType, pluginInfo.taskName,
+					pluginInfo.extensionName)), newJarEntry(pluginType));
 
-			jarWriter.addEntry(new JarEntry("META-INF/gradle-plugins/" + pluginInfo.pluginId + ".properties"),
-					stream(("implementation-class=" + pluginType.getInternalName().replace('/', '.')).getBytes()));
+			jarWriter.add(("implementation-class=" + pluginType.getInternalName().replace('/', '.')).getBytes(),
+					"META-INF/gradle-plugins/" + pluginInfo.pluginId + ".properties");
 		}
 		return pluginJar;
 	}
@@ -64,8 +63,8 @@ public final class PluginUtil {
 		return new ByteArrayInputStream(bytes);
 	}
 
-	private static JarEntry newJarEntry(Type type) {
-		return new JarEntry(toPath(type));
+	private static String newJarEntry(Type type) {
+		return toPath(type);
 	}
 
 	private static String toPath(Type type) {
