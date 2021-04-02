@@ -15,10 +15,14 @@ import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ALOAD;
 import static org.objectweb.asm.Opcodes.ASM9;
 import static org.objectweb.asm.Opcodes.GETFIELD;
+import static org.objectweb.asm.Opcodes.INVOKEINTERFACE;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
+import static org.objectweb.asm.Opcodes.INVOKESTATIC;
+import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 import static org.objectweb.asm.Opcodes.PUTFIELD;
 import static org.objectweb.asm.Opcodes.RETURN;
 import static org.objectweb.asm.tree.AbstractInsnNode.FIELD_INSN;
+import static org.objectweb.asm.tree.AbstractInsnNode.METHOD_INSN;
 
 import java.util.List;
 
@@ -31,6 +35,7 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import com.pfichtner.github.maedle.transform.MojoClassAnalyser.MojoData;
@@ -93,13 +98,7 @@ public class StripMojoTransformer extends ClassNode {
 		methods.removeIf(AsmUtil::isNoArgConstructor);
 		methods.add(extensionClassConstructor());
 
-		// TODO remap
-		// mv.visitMethodInsn(INVOKEVIRTUAL,
-		// "com/github/pfichtner/heapwatch/mavenplugin/HeapWatchMojo", "getLog",
-		// "()Lorg/apache/maven/plugin/logging/Log;", false);
-		// val slf4jLogger = LoggerFactory.getLogger("some-logger")
-		// slf4jLogger.info("An info log message logged using SLF4j")
-
+		methods.forEach(this::mapMavenToGradleLogging);
 		methods.forEach(this::replaceFieldAccess);
 		methods.forEach(m -> m.exceptions = filterMavenExceptions(m.exceptions));
 		super.accept(remap(classVisitor));
@@ -128,6 +127,33 @@ public class StripMojoTransformer extends ClassNode {
 				}
 			}
 		});
+	}
+
+	private void mapMavenToGradleLogging(MethodNode methodNode) {
+		methodNode.instructions.forEach(n -> {
+			if (n.getType() == METHOD_INSN) {
+				MethodInsnNode methodInsn = (MethodInsnNode) n;
+				if (isGetLogAccess(methodInsn)) {
+					methodInsn.owner = "java/lang/Object";
+					methodInsn.name = "getClass";
+					methodInsn.desc = "()Ljava/lang/Class;";
+					methodNode.instructions.insert(methodInsn,
+							new MethodInsnNode(INVOKESTATIC, "org/gradle/api/logging/Logging", "getLogger",
+									"(Ljava/lang/Class;)Lorg/gradle/api/logging/Logger;"));
+				} else if (isLogCall(methodInsn)) {
+					methodInsn.owner = "org/gradle/api/logging/Logger";
+					methodInsn.desc = "(Ljava/lang/String;)V";
+				}
+			}
+		});
+	}
+
+	private boolean isGetLogAccess(MethodInsnNode node) {
+		return node.getOpcode() == INVOKEVIRTUAL && node.owner.equals(this.name) && node.name.equals("getLog");
+	}
+
+	private boolean isLogCall(MethodInsnNode node) {
+		return node.getOpcode() == INVOKEINTERFACE && node.owner.equals("org/apache/maven/plugin/logging/Log");
 	}
 
 	private boolean hasMovedToExtensionClass(FieldInsnNode node) {
