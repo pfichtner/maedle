@@ -42,15 +42,15 @@ public class HeapWatchMojo extends AbstractMojo {
 //    public String messageNoDefault;
 
 	public void execute() throws MojoExecutionException {
-//		if (this.gclog == null) {
-//			throw new NullPointerException("gclog");
-//		}
-//		if (!this.gclog.exists()) {
-//			throw new IllegalStateException(gclog + " does not exist");
-//		}
+		if (this.gclog == null) {
+			throw new NullPointerException("gclog");
+		}
+		if (!this.gclog.exists()) {
+			throw new IllegalStateException(gclog + " does not exist");
+		}
 
-		System.out.println("Hello, " + greeter);
-		System.out.println("I have a message for You: " + message);
+		getLog().info("Hello, " + greeter);
+		getLog().info("I have a message for You: " + message);
 	}
 
 }
