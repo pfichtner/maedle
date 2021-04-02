@@ -68,16 +68,16 @@ public class GreeterMojoIT {
 
 	@Test
 	void canTransformHeapWatchMojo(@TempDir File testProjectDir) throws Exception {
-		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.gradle.greeting", "greet", "greeting");
+		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.maedle.greetingtest", "greet", "greeting");
 		createProjectSettingsFile(testProjectDir);
 		createProjectBuildFile(testProjectDir, pluginInfo);
-		File pluginJar = transformMojoAndWriteJar(testProjectDir, new GreeterMojo(), pluginInfo);
+		File pluginJar = transformMojoAndWriteJar(testProjectDir, GreeterMojo.class, pluginInfo);
 		try (ToolingAPI toolingAPI = new ToolingAPI(testProjectDir.getAbsolutePath())) {
 			String stdOut = toolingAPI.executeTask(pluginJar, pluginInfo.taskName);
 			assertThat(stdOut) //
 					.contains("> Task :" + pluginInfo.taskName) //
 					.contains("Hello, integration test") //
-					.contains("I have a message for You: Test success!") //
+					.contains("I have a message for you: Test success!") //
 			;
 		}
 
@@ -89,10 +89,10 @@ public class GreeterMojoIT {
 		return settingsFile;
 	}
 
-	private File transformMojoAndWriteJar(File baseDir, Mojo mojo, PluginInfo pluginInfo)
+	private File transformMojoAndWriteJar(File baseDir, Class<? extends Mojo> mojoClass, PluginInfo pluginInfo)
 			throws IOException, FileNotFoundException {
 		File pluginJar = new File(baseDir, "plugin.jar");
-		TransformationParameters parameters = new TransformationParameters(toBytes(asStream(mojo.getClass())));
+		TransformationParameters parameters = new TransformationParameters(toBytes(asStream(mojoClass)));
 		TransformationResult result = new TransformationResult(parameters);
 		MojoData mojoData = parameters.getMojoData();
 		try (JarWriter jarWriter = new JarWriter(new FileOutputStream(pluginJar), false)) {

@@ -25,7 +25,7 @@ public class GreeterMojo extends AbstractMojo {
 			throw new MojoFailureException("message must not be null");
 		}
 		System.out.println("Hello, " + greeter);
-		System.out.println("I have a message for You: " + message);
+		System.out.println("I have a message for you: " + message);
 	}
 
 }
