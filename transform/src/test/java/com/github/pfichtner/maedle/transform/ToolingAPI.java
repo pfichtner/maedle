@@ -24,13 +24,15 @@ public class ToolingAPI implements Closeable {
 
 	public String executeTask(File pluginJar, String... tasks) {
 		try (ProjectConnection connection = connector.connect()) {
-			BuildLauncher build = connection.newBuild();
-			((DefaultBuildLauncher) build).withInjectedClassPath(DefaultClassPath.of(pluginJar));
-			build.setStandardOutput(stdout); //
-			build.forTasks(tasks);
-			build.run();
+			withInjectedClassPath(pluginJar, connection.newBuild().setStandardOutput(stdout).forTasks(tasks)).run();
 			return stdout.toString();
 		}
+	}
+
+	private BuildLauncher withInjectedClassPath(File pluginJar, BuildLauncher launcher) {
+		// howto do via API?
+		((DefaultBuildLauncher) launcher).withInjectedClassPath(DefaultClassPath.of(pluginJar));
+		return launcher;
 	}
 
 	@Override
