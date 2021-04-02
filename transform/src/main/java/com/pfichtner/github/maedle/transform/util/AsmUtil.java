@@ -54,6 +54,10 @@ public final class AsmUtil {
 		return Type.getType(type.getDescriptor());
 	}
 
+	public static Type append(Type type, String suffix) {
+		return Type.getObjectType(type.getInternalName() + suffix);
+	}
+
 	public static Stream<AbstractInsnNode> instructions(MethodNode methodNode) {
 		return stream(methodNode.instructions.toArray());
 	}
@@ -78,4 +82,5 @@ public final class AsmUtil {
 		acc |= ACC_PUBLIC;
 		return acc;
 	}
+
 }

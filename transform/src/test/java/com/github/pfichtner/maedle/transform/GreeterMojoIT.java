@@ -46,7 +46,7 @@ public class GreeterMojoIT {
 		String greeterText = "integration test";
 		String messageText = "Test success!";
 		createProjectBuildFile(testProjectDir, pluginInfo, createData(greeterText, messageText));
-		File pluginJar = transformMojoAndWriteJar(testProjectDir, GreeterMojo.class, pluginInfo);
+		File pluginJar = transformMojoAndWriteJar(GreeterMojo.class, testProjectDir, pluginInfo);
 		try (GradleTestKit testKit = new GradleTestKit(testProjectDir.getAbsolutePath())) {
 			String stdOut = testKit.executeTask(pluginJar, pluginInfo.taskName);
 			assertThat(stdOut) //

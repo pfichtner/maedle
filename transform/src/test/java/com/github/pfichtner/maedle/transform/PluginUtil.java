@@ -2,6 +2,7 @@ package com.github.pfichtner.maedle.transform;
 
 import static com.pfichtner.github.maedle.transform.PluginWriter.createPlugin;
 import static com.pfichtner.github.maedle.transform.TransformationParameters.fromMojo;
+import static com.pfichtner.github.maedle.transform.util.AsmUtil.append;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.toBytes;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.writeFile;
@@ -37,7 +38,7 @@ public final class PluginUtil {
 		return settingsFile;
 	}
 
-	public static File transformMojoAndWriteJar(File baseDir, Class<? extends Mojo> mojoClass, PluginInfo pluginInfo)
+	public static File transformMojoAndWriteJar(Class<? extends Mojo> mojoClass, File baseDir, PluginInfo pluginInfo)
 			throws IOException, FileNotFoundException {
 		File pluginJar = createTempFile("plugin-", ".jar", baseDir);
 		pluginJar.delete();
@@ -49,7 +50,7 @@ public final class PluginUtil {
 			jarWriter.add(stream(result.getTransformedMojo()), newJarEntry(mojoType));
 			jarWriter.add(stream(result.getExtension()), newJarEntry(parameters.getExtensionClass()));
 
-			Type pluginType = Type.getObjectType(mojoType.getInternalName() + "GradlePlugin");
+			Type pluginType = append(mojoType, "GradlePlugin");
 			jarWriter.add(stream(createPlugin(pluginType, parameters.getExtensionClass(), mojoType, pluginInfo.taskName,
 					pluginInfo.extensionName)), newJarEntry(pluginType));
 
