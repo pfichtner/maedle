@@ -9,13 +9,13 @@ import org.apache.maven.plugins.annotations.Parameter;
 @Mojo(name = GreeterMojo2.GOAL)
 public class GreeterMojo2 extends AbstractMojo {
 
-	public static final String GOAL = "greet";
+	public static final String GOAL = "greet2";
 
 	@Parameter(name = "greeter")
 	public String greeter = "pfichtner";
 
 	@Parameter(name = "message")
-	private String message = "Message from Mojo!";
+	private String message = "Message from Mojo2!";
 
 	public void setMessage(String message) {
 		this.message = message;

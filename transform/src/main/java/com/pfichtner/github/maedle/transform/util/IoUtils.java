@@ -1,7 +1,10 @@
 package com.pfichtner.github.maedle.transform.util;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -22,6 +25,12 @@ public final class IoUtils {
 		BufferedInputStream bis = new BufferedInputStream(inputStream);
 		for (int result = bis.read(); result != -1; result = bis.read()) {
 			buf.write((byte) result);
+		}
+	}
+
+	public static void writeFile(File destination, String content) throws IOException {
+		try (BufferedWriter output = new BufferedWriter(new FileWriter(destination))) {
+			output.write(content);
 		}
 	}
 

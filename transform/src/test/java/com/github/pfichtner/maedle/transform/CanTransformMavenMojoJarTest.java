@@ -158,10 +158,10 @@ class CanTransformMavenMojoJarTest {
 				byte[] pluginBytes = createPlugin(pluginType, extensionType, mojoType, "greet", "greeting");
 				jarWriter.addEntry(new JarEntry(pluginType + ".class"), new ByteArrayInputStream(pluginBytes));
 
-				// TODO name?
-				String n = "com.github.pfichtner.gradle.greeting";
-				jarWriter.addEntry(new JarEntry("META-INF/gradle-plugins/" + n + ".properties"),
-						new ByteArrayInputStream("implementation-class=pluginType.replace('/', '.')".getBytes()));
+				// TODO pluginId?
+				String pluginId = "com.github.pfichtner.gradle.greeting";
+				jarWriter.addEntry(new JarEntry("META-INF/gradle-plugins/" + pluginId + ".properties"),
+						new ByteArrayInputStream(("implementation-class=" + pluginType.replace('/', '.')).getBytes()));
 			}
 
 			private String toPath(Type type) {

@@ -5,7 +5,6 @@ import static com.pfichtner.github.maedle.transform.util.ClassUtils.constructor;
 import static java.util.Arrays.stream;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -66,10 +65,6 @@ public class GreeterMojoTest2 {
 
 	private static void haveSameSysouts(Statement statement1, Statement statement2) throws Exception {
 		assertThat(tapSystemOut(statement1)).isEqualTo(tapSystemOut(statement2));
-	}
-
-	private static Throwable getExceptionThrown(Statement statement) {
-		return assertThrows(InvocationTargetException.class, () -> statement.execute()).getTargetException();
 	}
 
 }

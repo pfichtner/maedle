@@ -11,7 +11,7 @@ import org.gradle.api.Task;
 public class MaedlePluginTemplate implements Plugin<Project> {
 
 	// value will be replaced by PluginWriter
-	private static final String E_NAME = "theExtensionName";
+	public static final String E_NAME = "theExtensionName";
 	// value will be replaced by PluginWriter
 	public static final String T_NAME = "theTaskName";
 

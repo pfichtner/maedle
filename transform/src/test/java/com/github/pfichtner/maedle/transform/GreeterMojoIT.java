@@ -1,16 +1,25 @@
 package com.github.pfichtner.maedle.transform;
 
 import static com.pfichtner.github.maedle.transform.PluginWriter.createPlugin;
-import static com.pfichtner.github.maedle.transform.util.ClassUtils.constructor;
+import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
+import static com.pfichtner.github.maedle.transform.util.IoUtils.toBytes;
+import static com.pfichtner.github.maedle.transform.util.IoUtils.writeFile;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import java.lang.reflect.Method;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.util.jar.JarEntry;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.objectweb.asm.Type;
 
 import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
-import com.github.pfichtner.maedle.transform.loader.AsmClassLoader;
-import com.github.pfichtner.maedle.transform.loader.MojoLoader;
+import com.github.pfichtner.maedle.transform.uti.jar.JarWriter;
+import com.pfichtner.github.maedle.transform.MojoClassAnalyser.MojoData;
+import com.pfichtner.github.maedle.transform.TransformationParameters;
+import com.pfichtner.github.maedle.transform.TransformationResult;
 
 public class GreeterMojoIT {
 
@@ -36,31 +45,60 @@ public class GreeterMojoIT {
 //	reportTask.onlyIf { !project.hasProperty('skipReports') }
 
 	@Test
-	// TODO this should be done in a gradle project with the usage of testkit
-	void canTransformHeapWatchMojo() throws Exception {
+	void canTransformHeapWatchMojo(@TempDir File testProjectDir) throws Exception {
 		GreeterMojo greeterMojo = new GreeterMojo();
-		Object transformedMojoInstance = new MojoLoader(greeterMojo).transformedInstance();
+		TransformationParameters parameters = new TransformationParameters(toBytes(asStream(greeterMojo.getClass())));
+		TransformationResult result = new TransformationResult(parameters);
 
-		String extensionType = Type.getInternalName(typeOfSingleArgConstructor(transformedMojoInstance));
-		String mojoType = Type.getInternalName(transformedMojoInstance.getClass());
+		File settingsFile = new File(testProjectDir, "settings.gradle");
+		writeFile(settingsFile, "rootProject.name = 'any-name'");
 
-		AsmClassLoader asmClassLoader = new AsmClassLoader(transformedMojoInstance.getClass().getClassLoader());
-		String pluginType = (greeterMojo.getClass().getName() + "GradlePlugin").replace('.', '/');
-		Class<?> pluginClass = asmClassLoader.defineClass(
-				createPlugin(pluginType, extensionType, mojoType, "greet", "greeting"), pluginType.replace('/', '.'));
-		Object plugin = pluginClass.newInstance();
-		Class<?> projectClass = (Class<?>) asmClassLoader.loadClass("org.gradle.api.Project");
+		String pluginId = "com.github.pfichtner.gradle.greeting";
+		String taskName = "greet";
+		String extensionName = "greeting";
 
-		Method applyMethod = plugin.getClass().getMethod("apply", projectClass);
-		// TODO we need a mosquito mock here: project.getExtensions().create("greeting",
-		// GreetingPluginExtension.class);
-//			apply.invoke(plugin, new Object[] { null });
+		File buildFile = new File(testProjectDir, "build.gradle");
+		String buildFileContent = "" //
+				+ "plugins { id '" + pluginId + "' }\n" //
+				+ extensionName + " {\n" //
+				+ "		greeter = \"" + "integration test" + "\"\n" //
+				+ "		message = \"" + "Test success!" + "\"\n" //
+				+ "}\n" //
+		;
+		writeFile(buildFile, buildFileContent);
+
+		File pluginJar = new File(testProjectDir, "plugin.jar");
+		MojoData mojoData = parameters.getMojoData();
+		try (JarWriter jarWriter = new JarWriter(new FileOutputStream(pluginJar), false)) {
+			jarWriter.addEntry(new JarEntry(toPath(mojoData.getMojoType())),
+					new ByteArrayInputStream(result.getTransformedMojo()));
+			jarWriter.addEntry(new JarEntry(toPath(parameters.getExtensionClass())),
+					new ByteArrayInputStream(result.getExtension()));
+
+			String mojoType = mojoData.getMojoType().getInternalName();
+			String extensionType = parameters.getExtensionClass().getInternalName();
+			String pluginType = mojoType + "GradlePlugin";
+
+			byte[] pluginBytes = createPlugin(pluginType, extensionType, mojoType, taskName, extensionName);
+			jarWriter.addEntry(new JarEntry(pluginType + ".class"), new ByteArrayInputStream(pluginBytes));
+
+			jarWriter.addEntry(new JarEntry("META-INF/gradle-plugins/" + pluginId + ".properties"),
+					new ByteArrayInputStream(("implementation-class=" + pluginType.replace('/', '.')).getBytes()));
+		}
+
+		try (ToolingAPI toolingAPI = new ToolingAPI(testProjectDir.getAbsolutePath())) {
+			String stdOut = toolingAPI.executeTask(pluginJar, "greet");
+			assertThat(stdOut) //
+					.contains("> Task :greet") //
+					.contains("Hello, integration test") //
+					.contains("I have a message for You: Test success!") //
+			;
+		}
 
 	}
 
-	private Class<?> typeOfSingleArgConstructor(Object transformedMojoInstance) {
-		return constructor(transformedMojoInstance.getClass(), c -> c.getParameterCount() == 1).getParameters()[0]
-				.getType();
+	private String toPath(Type type) {
+		return type.getInternalName() + ".class";
 	}
 
 }

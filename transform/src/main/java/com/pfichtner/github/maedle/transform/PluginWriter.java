@@ -28,6 +28,7 @@ import static org.objectweb.asm.Opcodes.RETURN;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.Objects;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -45,22 +46,49 @@ public class PluginWriter {
 
 	public static byte[] createPlugin(String pluginClass, String extensionClass, String mojoClass, String taskName,
 			String extensionName) {
-		return createPluginMixin(pluginClass, extensionClass, mojoClass, taskName, extensionName);
+		try {
+			return createPluginMixin(pluginClass, extensionClass, mojoClass, taskName, extensionName);
+		} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	private static byte[] createPluginMixin(String pluginClass, String extensionClass, String mojoClass,
-			String taskName, String extensionName) {
-		// TODO handle taskName
-		// TODO handle extensionName
+			String taskName, String extensionName)
+			throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+		Class<?> plugin = com.pfichtner.github.maedle.MaedlePluginTemplate.class;
+		Type pluginType = Type.getType(plugin);
+		Type extensionType = Type.getType(com.pfichtner.github.maedle.E.class);
+		Type mojoType = Type.getType(com.pfichtner.github.maedle.M.class);
+		Field extensionField = plugin.getDeclaredField("E_NAME");
+		Object extensionFieldValue = extensionField.get(null);
+		Field taskField = plugin.getDeclaredField("T_NAME");
+		Object taskFieldValue = taskField.get(null);
 
-		ClassWriter cw = new ClassWriter(COMPUTE_FRAMES | COMPUTE_MAXS);
+		if (Objects.equals(taskFieldValue, extensionFieldValue)) {
+			throw new IllegalStateException();
+		}
+
+		ClassWriter cw1 = new ClassWriter(COMPUTE_FRAMES | COMPUTE_MAXS);
 		try {
 
-			ClassVisitor cw2 = new ClassVisitor(ASM9, cw) {
+			ClassRemapper cw2 = new ClassRemapper(cw1, new Remapper() {
+				@Override
+				public String map(String internalName) {
+					Type type = Type.getObjectType(internalName);
+					if (type.equals(pluginType)) {
+						return pluginClass;
+					} else if (type.equals(extensionType)) {
+						return extensionClass;
+					} else if (type.equals(mojoType)) {
+						return mojoClass;
+					} else {
+						return internalName;
+					}
+				}
+			});
 
-				Class<?> plugin = MaedlePluginTemplate.class;
-				Field extensionField = plugin.getDeclaredField("E_NAME");
-				Field taskField = plugin.getDeclaredField("T_NAME");
+			ClassVisitor cw3 = new ClassVisitor(ASM9, cw2) {
 
 				@Override
 				public FieldVisitor visitField(int access, String name, String descriptor, String signature,
@@ -72,27 +100,29 @@ public class PluginWriter {
 					}
 					return super.visitField(access, name, descriptor, signature, value);
 				}
+
+				@Override
+				public MethodVisitor visitMethod(int access, String name, String desc, String signature,
+						String[] exceptions) {
+					return new MethodVisitor(ASM9, super.visitMethod(access, name, desc, signature, exceptions)) {
+
+						@Override
+						public void visitLdcInsn(Object cst) {
+							// replace compile time constants
+							if (Objects.equals(taskFieldValue, cst)) {
+								cst = taskName;
+							} else if (Objects.equals(extensionFieldValue, cst)) {
+								cst = extensionName;
+							}
+							super.visitLdcInsn(cst);
+						}
+					};
+				}
 			};
 
-			ClassRemapper remapper = new ClassRemapper(cw2, new Remapper() {
-				@Override
-				public String map(String internalName) {
-					if (internalName.equals("com/pfichtner/github/maedle/MaedlePluginTemplate")) {
-						return pluginClass;
-					} else if (internalName.equals("com/pfichtner/github/maedle/TransformedExtension")) {
-						return extensionClass;
-					} else if (internalName.equals("com/pfichtner/github/maedle/TransformedMojo")) {
-						return mojoClass;
-					} else {
-						return internalName;
-					}
-				}
-
-			});
-
-			new ClassReader(asStream(MaedlePluginTemplate.class)).accept(remapper, EXPAND_FRAMES);
-			return cw.toByteArray();
-		} catch (IOException | NoSuchFieldException | SecurityException e) {
+			new ClassReader(asStream(MaedlePluginTemplate.class)).accept(cw3, EXPAND_FRAMES);
+			return cw1.toByteArray();
+		} catch (IOException | SecurityException e) {
 			throw new RuntimeException(e);
 		}
 	}

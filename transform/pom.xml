@@ -11,6 +11,14 @@
 		<maven.compiler.target>${maven.compiler.source}</maven.compiler.target>
 	</properties>
 
+	<repositories>
+		<repository>
+			<id>gradle</id>
+			<url>https://repo.gradle.org/gradle/libs-releases-local/</url>
+		</repository>
+	</repositories>
+
+
 	<dependencies>
 		<dependency>
 			<groupId>org.ow2.asm</groupId>
@@ -62,6 +70,14 @@
 			<groupId>com.pfichtner.github.maedle</groupId>
 			<artifactId>maven-test-project</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- run integration tests via BuildLauncher -->
+		<dependency>
+			<groupId>org.gradle</groupId>
+			<artifactId>gradle-tooling-api</artifactId>
+			<version>6.8.3</version>
 			<scope>test</scope>
 		</dependency>
 
