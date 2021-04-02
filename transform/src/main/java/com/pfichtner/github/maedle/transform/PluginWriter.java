@@ -44,6 +44,12 @@ import com.pfichtner.github.maedle.MaedlePluginTemplate;
 
 public class PluginWriter {
 
+	public static byte[] createPlugin(Type pluginClass, Type extensionClass, Type mojoClass, String taskName,
+			String extensionName) {
+		return createPlugin(pluginClass.getInternalName(), extensionClass.getInternalName(),
+				mojoClass.getInternalName(), taskName, extensionName);
+	}
+
 	public static byte[] createPlugin(String pluginClass, String extensionClass, String mojoClass, String taskName,
 			String extensionName) {
 		try {

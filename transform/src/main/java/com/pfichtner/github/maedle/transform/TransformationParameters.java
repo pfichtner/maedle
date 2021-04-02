@@ -17,18 +17,18 @@ public class TransformationParameters {
 		return new TransformationParameters(mojo, mojoData, mojoClass, extensionClass);
 	}
 
+	private final byte[] mojo;
+	private final MojoData mojoData;
+	private Type mojoClass;
+	private Type extensionClass;
+	private Remapper classRemapper;
+
 	public TransformationParameters(byte[] mojo, MojoData mojoData, Type mojoClass, Type extensionClass) {
 		this.mojo = mojo;
 		this.mojoData = mojoData;
 		this.mojoClass = mojoClass;
 		this.extensionClass = extensionClass;
 	}
-
-	private final byte[] mojo;
-	private final MojoData mojoData;
-	private Type mojoClass;
-	private Type extensionClass;
-	private Remapper classRemapper;
 
 	public byte[] getMojo() {
 		return mojo;
