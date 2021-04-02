@@ -76,19 +76,11 @@ public class GreeterMojoRewritten {
 ```
 public class GreetingPlugin implements Plugin<Project> {
 
-	public static final String EXTENSION = "greeting";
-	public static final String TASK = "greet";
-
 	@Override
 	public void apply(Project project) {
 		GreetingPluginExtension extension = project.getExtensions().create("greeting", GreetingPluginExtension.class);
 		Task task = project.task("greet");
 		task.doLast(t -> execute(extension));
-	}
-
-	public void execute(GreetingPluginExtension extension) {
-		Logging.getLogger(getClass()).info("Hello, " + extension.greeter);
-		Logging.getLogger(getClass()).info("I have a message for you: " + extension.message);
 	}
 
 }
