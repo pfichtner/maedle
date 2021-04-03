@@ -6,8 +6,6 @@ import static com.github.pfichtner.maedle.transform.PluginUtil.transformMojoAndW
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -44,26 +42,20 @@ public class GreeterMojoIT {
 	void canTransformHeapWatchMojo(@TempDir File testProjectDir) throws Exception {
 		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.maedle.mojotogradle", "greeting");
 		createProjectSettingsFile(testProjectDir);
-		String greeterText = "integration test";
-		String messageText = "Test success!";
+		String greeter = "integration test";
+		String message = "Test success!";
 		String taskName = GreeterMojo.GOAL;
-		createProjectBuildFile(testProjectDir, pluginInfo, createData(greeterText, messageText));
+		createProjectBuildFile(testProjectDir, pluginInfo,
+				new GreeterMessageBuilder().withGreeter(greeter).withMessage(message).build());
 		File pluginJar = transformMojoAndWriteJar(GreeterMojo.class, testProjectDir, pluginInfo);
 		try (GradleTestKit testKit = new GradleTestKit(testProjectDir.getAbsolutePath())) {
 			String stdOut = testKit.executeTask(pluginJar, taskName);
 			assertThat(stdOut) //
 					.contains("> Task :" + taskName) //
-					.contains("Hello, " + greeterText) //
-					.contains("I have a message for you: " + messageText) //
+					.contains("Hello, " + greeter) //
+					.contains("I have a message for you: " + message) //
 			;
 		}
-	}
-
-	private Map<Object, Object> createData(String greeterText, String messageText) {
-		Map<Object, Object> data = new HashMap<>();
-		data.put("greeter", greeterText);
-		data.put("message", messageText);
-		return data;
 	}
 
 }

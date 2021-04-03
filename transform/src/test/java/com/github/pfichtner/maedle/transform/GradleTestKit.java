@@ -13,17 +13,26 @@ import org.gradle.tooling.internal.consumer.DefaultBuildLauncher;
 
 public class GradleTestKit implements Closeable {
 
+	private static final String DEFAULT_VERSION = "6.8.3";
 	private final GradleConnector connector;
 	private final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
 
 	public GradleTestKit(String projectDir) {
-		this(projectDir, "6.8.3");
+		this(projectDir, DEFAULT_VERSION);
 	}
 
 	public GradleTestKit(String projectDir, String version) {
+		this(new File(projectDir), version);
+	}
+
+	public GradleTestKit(File projectDir) {
+		this(projectDir, DEFAULT_VERSION);
+	}
+
+	public GradleTestKit(File projectDir, String version) {
 		connector = GradleConnector.newConnector();
 		connector.useGradleVersion(version);
-		connector.forProjectDirectory(new File(projectDir));
+		connector.forProjectDirectory(projectDir);
 	}
 
 	public String executeTask(File pluginJar, String... tasks) {
