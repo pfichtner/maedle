@@ -44,17 +44,22 @@ class CanTransformMavenMojoJarTest {
 
 	@Test
 	void canTransformMavenMojoJarToGradlePlugin(@TempDir File tmpDir) throws Exception {
+		Class<GreeterMojo> mojo = GreeterMojo.class;
 		File inJar = new File(tmpDir, "in.jar");
 		File outJar = new File(tmpDir, "out.jar");
 
-		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.maedle.mojotogradle", "greeting");
+		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.maedle.some.target.packagename", "greeting");
+		try (JarModifier jarBuilder = new JarModifier(inJar, true)) {
+			addClass(jarBuilder, nonMojoClass());
+			addClass(jarBuilder, mojo);
+		}
 
 		// TODO when transforming: switchable "overwrite" flag for the jar
-		transform(fillJar(inJar), outJar, t -> pluginInfo);
+		transform(inJar, outJar, t -> pluginInfo);
 		Set<String> classNamesOfInJar = collectJarContents(inJar).keySet();
 
-		String pkgName = "com.github.pfichtner.greeter.mavenplugin.";
-		String internal = "/" + pkgName.replace('.', '/');
+		String pkgName = mojo.getPackage().getName();
+		String internal = "/" + (pkgName + ".").replace('.', '/');
 
 		List<String> filenamesAdded = asList( //
 				"/META-INF/gradle-plugins/" + pluginInfo.pluginId + ".properties", //
@@ -68,7 +73,7 @@ class CanTransformMavenMojoJarTest {
 				.containsKeys(filenamesAdded.toArray(new String[filenamesAdded.size()])) //
 		;
 
-		verifyCanLoadClass(outJar, pkgName + "GreeterMojoGradlePlugin");
+		verifyCanLoadClass(outJar, pkgName + ".GreeterMojoGradlePlugin");
 		verifyTransformed(tmpDir, outJar, pluginInfo);
 	}
 
@@ -116,20 +121,8 @@ class CanTransformMavenMojoJarTest {
 		return content;
 	}
 
-	private static File fillJar(File jar) throws IOException, FileNotFoundException, URISyntaxException {
-		try (JarModifier jarBuilder = new JarModifier(jar, true)) {
-			addClass(jarBuilder, nonMojoClass());
-			addClass(jarBuilder, mojoClass());
-		}
-		return jar;
-	}
-
 	private static Class<?> nonMojoClass() {
 		return CanTransformMavenMojoJarTest.class;
-	}
-
-	private static Class<?> mojoClass() {
-		return GreeterMojo.class;
 	}
 
 	private static void addClass(JarModifier jarWriter, Class<?> clazz)
