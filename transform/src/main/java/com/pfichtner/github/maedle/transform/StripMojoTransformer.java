@@ -145,7 +145,9 @@ public class StripMojoTransformer extends ClassNode {
 				} else if (isLogCall(methodInsn)) {
 					// maven accepts CharSequences, gradle Strings, this SHOULD normaly not be a
 					// problem: Better solution would be to transform CharSequences to Strings (if
-					// not already instance of)
+					// not already instance of). Even maven is calling #toString on the passed
+					// CharSequences, which does not really make sense since so the method could
+					// also accept any type (java.lang.Object).
 					methodInsn.owner = "org/gradle/api/logging/Logger";
 					methodInsn.desc = "(Ljava/lang/String;)V";
 				}

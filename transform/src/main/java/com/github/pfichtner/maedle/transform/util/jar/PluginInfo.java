@@ -1,4 +1,4 @@
-package com.github.pfichtner.maedle.transform;
+package com.github.pfichtner.maedle.transform.util.jar;
 
 public class PluginInfo {
 

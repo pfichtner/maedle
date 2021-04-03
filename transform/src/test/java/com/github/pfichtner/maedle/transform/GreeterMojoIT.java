@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
+import com.github.pfichtner.maedle.transform.util.jar.PluginInfo;
 
 public class GreeterMojoIT {
 

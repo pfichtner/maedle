@@ -1,13 +1,12 @@
 package com.github.pfichtner.maedle.transform;
 
-import static com.pfichtner.github.maedle.transform.PluginWriter.createPlugin;
 import static com.pfichtner.github.maedle.transform.TransformationParameters.fromMojo;
+import static com.pfichtner.github.maedle.transform.util.AsmUtil.append;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.Files.copy;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -29,9 +28,9 @@ import org.objectweb.asm.Type;
 
 import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
 import com.github.pfichtner.maedle.transform.util.jar.JarModifier;
-import com.pfichtner.github.maedle.transform.MojoClassAnalyser.MojoData;
+import com.github.pfichtner.maedle.transform.util.jar.PluginInfo;
+import com.github.pfichtner.maedle.transform.util.jar.ToJarAdder;
 import com.pfichtner.github.maedle.transform.TransformationParameters;
-import com.pfichtner.github.maedle.transform.TransformationResult;
 
 class CanTransformMavenMojoJarTest {
 
@@ -101,14 +100,14 @@ class CanTransformMavenMojoJarTest {
 	}
 
 	private void transform(File jar, File outJar) throws IOException {
-		try (JarModifier jarReader = new JarModifier(jar, false)) {
-			try (JarModifier jarWriter = new JarModifier(outJar, true)) {
-				jarReader.readJar(visitor(jarReader.getFileSystem().getPathMatcher("glob:**.class"), jarWriter));
+		try (JarModifier reader = new JarModifier(jar, false)) {
+			try (JarModifier writer = new JarModifier(outJar, true)) {
+				reader.readJar(visitor(reader.getFileSystem().getPathMatcher("glob:**.class"), new ToJarAdder(writer)));
 			}
 		}
 	}
 
-	private SimpleFileVisitor<Path> visitor(PathMatcher matcher, JarModifier jarWriter) {
+	private SimpleFileVisitor<Path> visitor(PathMatcher matcher, ToJarAdder adder) {
 		return new SimpleFileVisitor<Path>() {
 
 			@Override
@@ -118,44 +117,21 @@ class CanTransformMavenMojoJarTest {
 				if (matcher.matches(file)) {
 					// TODO use OO -> JaEntry[] entries getTransformer().transform(...)
 					TransformationParameters parameters = fromMojo(content);
-					MojoData mojoData = parameters.getMojoData();
-					parameters = parameters
-							.withMojoClass(Type.getObjectType(mojoData.getMojoType().getInternalName() + "Rewritten"));
-					if (mojoData.isMojo()) {
-						writeTransformed(jarWriter, parameters, mojoData);
+					if (parameters.getMojoData().isMojo()) {
+						Type originalMojoType = parameters.getMojoClass();
+						String task = String.valueOf(parameters.getMojoData().getMojoAnnotationValues().get("value"));
+						PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.gradle.greeting", task,
+								"greeting");
+						adder.add(parameters.withMojoClass(append(originalMojoType, "Rewritten")),
+								append(originalMojoType, "GradlePlugin"), pluginInfo);
 						transformed = true;
 					}
 				}
 				if (!transformed) {
 					String path = file.toString();
-					jarWriter.add(content, path.startsWith("/") ? path.substring(1) : path);
+					adder.add(content, path.startsWith("/") ? path.substring(1) : path);
 				}
 				return CONTINUE;
-			}
-
-			private void writeTransformed(JarModifier jarWriter, TransformationParameters parameters, MojoData mojoData)
-					throws IOException, FileNotFoundException {
-				TransformationResult result = new TransformationResult(parameters);
-				// entry.setTime(path.);
-				jarWriter.add(result.getTransformedMojo(), toPath(parameters.getMojoClass()));
-				jarWriter.add(result.getExtension(), toPath(parameters.getExtensionClass()));
-
-				String mojoType = mojoData.getMojoType().getInternalName();
-				String extensionType = parameters.getExtensionClass().getInternalName();
-				String pluginType = mojoType + "GradlePlugin";
-
-				jarWriter.add(createPlugin(pluginType, extensionType, mojoType, "greet", "greeting"),
-						pluginType + ".class");
-
-				// TODO pluginId?
-				String pluginId = "com.github.pfichtner.gradle.greeting";
-				jarWriter.add(
-						new ByteArrayInputStream(("implementation-class=" + pluginType.replace('/', '.')).getBytes()),
-						("META-INF/gradle-plugins/" + pluginId + ".properties"));
-			}
-
-			private String toPath(Type type) {
-				return type.getInternalName() + ".class";
 			}
 
 		};
