@@ -5,6 +5,7 @@ import static com.pfichtner.github.maedle.transform.util.AsmUtil.append;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.Files.copy;
+import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayOutputStream;
@@ -19,8 +20,11 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -38,18 +42,25 @@ class CanTransformMavenMojoJarTest {
 	void canTransformMavenMojoJarToGradlePlugin(@TempDir File tmpDir) throws Exception {
 		File inJar = new File(tmpDir, "in.jar");
 		File outJar = new File(tmpDir, "out.jar");
+
 		// TODO when transforming: switchable "overwrite" flag for the jar
 		transform(fillJar(inJar), outJar);
+		Set<String> classNamesOfInJar = collectJarContents(inJar).keySet();
 
 		String pkgName = "com.github.pfichtner.greeter.mavenplugin.";
 		String internal = "/" + pkgName.replace('.', '/');
-		assertThat(collectJarContents(outJar)).hasSize(5).containsKeys( //
+
+		List<String> filenamesAdded = asList( //
 				"/META-INF/gradle-plugins/com.github.pfichtner.gradle.greeting.properties", //
 				internal + "GreeterMojoGradlePlugin.class", //
 				internal + "GreeterMojoRewritten.class", //
-				internal + "GreeterMojoGradlePluginExtension.class", //
-				"/com/github/pfichtner/maedle/transform/CanTransformMavenMojoJarTest.class" //
+				internal + "GreeterMojoGradlePluginExtension.class" //
 		);
+
+		assertThat(collectJarContents(outJar)).hasSize(classNamesOfInJar.size() + filenamesAdded.size()) //
+				.containsKeys(classNamesOfInJar.toArray(new String[classNamesOfInJar.size()])) //
+				.containsKeys(filenamesAdded.toArray(new String[filenamesAdded.size()])) //
+		;
 
 		try (URLClassLoader urlClassLoader = new URLClassLoader(new URL[] { outJar.toURI().toURL() })) {
 			// we COULD assert if the plugin is written correct
@@ -113,21 +124,18 @@ class CanTransformMavenMojoJarTest {
 			@Override
 			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 				byte[] content = read(file);
-				boolean transformed = false;
+
+				String path = file.toString();
+				adder.add(content, path.startsWith("/") ? path.substring(1) : path);
+
 				if (matcher.matches(file)) {
-					// TODO use OO -> JaEntry[] entries getTransformer().transform(...)
 					TransformationParameters parameters = fromMojo(content);
 					if (parameters.getMojoData().isMojo()) {
 						Type originalMojoType = parameters.getMojoClass();
 						PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.gradle.greeting", "greeting");
 						adder.add(parameters.withMojoClass(append(originalMojoType, "Rewritten")),
 								append(originalMojoType, "GradlePlugin"), pluginInfo);
-						transformed = true;
 					}
-				}
-				if (!transformed) {
-					String path = file.toString();
-					adder.add(content, path.startsWith("/") ? path.substring(1) : path);
 				}
 				return CONTINUE;
 			}
