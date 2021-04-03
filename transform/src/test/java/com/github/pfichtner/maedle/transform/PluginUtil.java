@@ -6,7 +6,6 @@ import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.toBytes;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.writeFile;
 import static java.io.File.createTempFile;
-import static java.lang.String.format;
 import static java.util.stream.Collectors.joining;
 
 import java.io.File;
@@ -55,10 +54,10 @@ public final class PluginUtil {
 
 	public static List<String> buildFileContent(PluginInfo pluginInfo, Map<Object, Object> entries) {
 		List<String> lines = new ArrayList<>();
-		lines.add(format("plugins { id '%s' }", pluginInfo.pluginId));
-		lines.add(format("%s {", pluginInfo.extensionName));
-		entries.forEach((k, v) -> lines.add(format("	" + k + " = \"%s\"", v)));
-		lines.add(format("}"));
+		lines.add("plugins { id '" + pluginInfo.pluginId + "' }");
+		lines.add(pluginInfo.extensionName + " {");
+		entries.forEach((k, v) -> lines.add("	" + k + " = \"" + v + "\""));
+		lines.add("}");
 		return lines;
 	}
 
