@@ -42,16 +42,17 @@ public class GreeterMojoIT {
 
 	@Test
 	void canTransformHeapWatchMojo(@TempDir File testProjectDir) throws Exception {
-		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.maedle.mojotogradle", "greet", "greeting");
+		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.maedle.mojotogradle", "greeting");
 		createProjectSettingsFile(testProjectDir);
 		String greeterText = "integration test";
 		String messageText = "Test success!";
+		String taskName = GreeterMojo.GOAL;
 		createProjectBuildFile(testProjectDir, pluginInfo, createData(greeterText, messageText));
 		File pluginJar = transformMojoAndWriteJar(GreeterMojo.class, testProjectDir, pluginInfo);
 		try (GradleTestKit testKit = new GradleTestKit(testProjectDir.getAbsolutePath())) {
-			String stdOut = testKit.executeTask(pluginJar, pluginInfo.taskName);
+			String stdOut = testKit.executeTask(pluginJar, taskName);
 			assertThat(stdOut) //
-					.contains("> Task :" + pluginInfo.taskName) //
+					.contains("> Task :" + taskName) //
 					.contains("Hello, " + greeterText) //
 					.contains("I have a message for you: " + messageText) //
 			;

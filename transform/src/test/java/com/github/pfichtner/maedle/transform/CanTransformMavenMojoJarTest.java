@@ -120,8 +120,7 @@ class CanTransformMavenMojoJarTest {
 					if (parameters.getMojoData().isMojo()) {
 						Type originalMojoType = parameters.getMojoClass();
 						String task = String.valueOf(parameters.getMojoData().getMojoAnnotationValues().get("value"));
-						PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.gradle.greeting", task,
-								"greeting");
+						PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.gradle.greeting", "greeting");
 						adder.add(parameters.withMojoClass(append(originalMojoType, "Rewritten")),
 								append(originalMojoType, "GradlePlugin"), pluginInfo);
 						transformed = true;

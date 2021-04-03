@@ -24,12 +24,16 @@ public class ToJarAdder {
 		add(result.getTransformedMojo(), toPath(mojoType));
 		add(result.getExtension(), toPath(parameters.getExtensionClass()));
 
-		add(createPlugin(pluginType, parameters.getExtensionClass(), mojoType, pluginInfo.taskName,
+		add(createPlugin(pluginType, parameters.getExtensionClass(), mojoType, taskName(parameters),
 				pluginInfo.extensionName), toPath(pluginType));
 
 		// TODO we should check if file already exists and append content if
 		add(("implementation-class=" + pluginType.getInternalName().replace('/', '.')).getBytes(),
 				"META-INF/gradle-plugins/" + pluginInfo.pluginId + ".properties");
+	}
+
+	private String taskName(TransformationParameters parameters) {
+		return String.valueOf(parameters.getMojoData().getMojoAnnotationValues().get("name"));
 	}
 
 	public void add(byte[] content, String path) throws IOException {

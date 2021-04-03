@@ -18,12 +18,12 @@ public class GreeterMojo3IT {
 
 	@Test
 	void canTransformHeapWatchMojo(@TempDir File testProjectDir) throws Exception {
-		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.maedle.mojotogradle", "greet", "greeting");
+		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.maedle.mojotogradle", "greeting");
 		createProjectSettingsFile(testProjectDir);
 		createProjectBuildFile(testProjectDir, pluginInfo, emptyMap());
 		File pluginJar = transformMojoAndWriteJar(GreeterMojo3.class, testProjectDir, pluginInfo);
 		try (GradleTestKit testKit = new GradleTestKit(testProjectDir.getAbsolutePath())) {
-			String stdOut = testKit.executeTask(pluginJar, pluginInfo.taskName);
+			String stdOut = testKit.executeTask(pluginJar, GreeterMojo3.GOAL);
 			assertThat(stdOut).contains("Warn log statement");
 		}
 	}
