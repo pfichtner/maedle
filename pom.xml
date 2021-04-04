@@ -16,6 +16,7 @@
 		<module>transform</module>
 		<module>gradle-plugin-mixin</module>
 		<module>maven-test-project</module>
+		<module>maedle-maven-plugin</module>
 	</modules>
 
 	<build>
