@@ -88,6 +88,7 @@ public class GreetingPlugin implements Plugin<Project> {
 
 Not yet implemented
 - Only working if Mojo extends ```AbstractMojo``` (getLog)
+- @Parameter's defaultValue
 - transform MavenProject, access jar file
 ```
 Jar jarTask = (Jar) project.task("jar");
