@@ -101,6 +101,12 @@ public class PluginWriter {
 				@Override
 				public MethodVisitor visitMethod(int access, String name, String desc, String signature,
 						String[] exceptions) {
+
+					if (Objects.equals(MaedlePluginTemplate.T_NAME, MaedlePluginTemplate.E_NAME)) {
+						throw new IllegalStateException(
+								"compile time constants do not differ, not able to detect them for replacement");
+					}
+
 					return new MethodVisitor(ASM9, super.visitMethod(access, name, desc, signature, exceptions)) {
 
 						@Override
