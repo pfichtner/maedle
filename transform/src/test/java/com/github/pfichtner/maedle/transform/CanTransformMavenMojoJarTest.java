@@ -2,8 +2,8 @@ package com.github.pfichtner.maedle.transform;
 
 import static com.github.pfichtner.maedle.transform.PluginUtil.createProjectBuildFile;
 import static com.github.pfichtner.maedle.transform.PluginUtil.createProjectSettingsFile;
-import static com.github.pfichtner.maedle.transform.ResourceAddables.writeToDirectory;
-import static com.github.pfichtner.maedle.transform.ResourceAddables.writeToJar;
+import static com.pfichtner.github.maedle.transform.ResourceAddables.writeToDirectory;
+import static com.pfichtner.github.maedle.transform.ResourceAddables.writeToJar;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.ensureDirectoryExists;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.writeFile;
@@ -43,6 +43,7 @@ import org.objectweb.asm.Type;
 import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
 import com.github.pfichtner.maedle.transform.util.jar.JarModifier;
 import com.github.pfichtner.maedle.transform.util.jar.PluginInfo;
+import com.pfichtner.github.maedle.transform.TransformMojoVisitor;
 
 class CanTransformMavenMojoJarTest {
 

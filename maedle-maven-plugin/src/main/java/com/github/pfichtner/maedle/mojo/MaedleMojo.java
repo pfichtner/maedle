@@ -1,21 +1,26 @@
-package com.pfichtner.github.maedle.mojo;
+package com.github.pfichtner.maedle.mojo;
 
-import static org.apache.maven.plugins.annotations.LifecyclePhase.GENERATE_RESOURCES;
+import static com.pfichtner.github.maedle.transform.ResourceAddables.writeToDirectory;
+import static java.nio.file.Files.walkFileTree;
+import static org.apache.maven.plugins.annotations.LifecyclePhase.PROCESS_CLASSES;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileSystems;
 
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
-import com.github.pfichtner.maedle.transform.util.jar.ToResourceTransformer;
+import com.github.pfichtner.maedle.transform.util.jar.PluginInfo;
+import com.pfichtner.github.maedle.transform.TransformMojoVisitor;
 
-@Mojo(name = MaedleMojo.GOAL, defaultPhase = GENERATE_RESOURCES)
+@Mojo(name = MaedleMojo.GOAL, defaultPhase = PROCESS_CLASSES)
 public class MaedleMojo extends AbstractMojo {
 
 	public static final String GOAL = "transform";
@@ -29,6 +34,9 @@ public class MaedleMojo extends AbstractMojo {
 	 */
 	@Parameter(defaultValue = "${project.build.directory}/maedle-transformed-classes")
 	private File outputDirectory;
+
+	@Parameter(defaultValue = "${project.build.directory}/classes")
+	private File classesDirectory;
 
 //	@Component
 //	private MavenProjectHelper projectHelper;
@@ -44,20 +52,24 @@ public class MaedleMojo extends AbstractMojo {
 //	private String finalName;
 
 	@Override
-	public void execute() throws MojoExecutionException {
+	public void execute() throws MojoExecutionException, MojoFailureException {
 		// TODO project.isExecutionRoot();
 
 		if (!outputDirectory.exists() && !outputDirectory.mkdirs()) {
 			throw new MojoExecutionException("Cannot create output directory " + outputDirectory);
 		}
 
-		
-		
+		PluginInfo pluginInfo = new PluginInfo("foo", "bar");
+		try {
+			walkFileTree(classesDirectory.toPath(), new TransformMojoVisitor(FileSystems.getDefault(),
+					writeToDirectory(outputDirectory), t -> pluginInfo).withCopy(false));
+		} catch (IOException e) {
+			throw new MojoFailureException("error reading " + classesDirectory, e);
+		}
 
 		Resource resource = new Resource();
-		resource.setDirectory("/tmp/foo");
+		resource.setDirectory(outputDirectory.toString());
 		project.getResources().add(resource);
-
 	}
 
 	public MavenProject getProject() {

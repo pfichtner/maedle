@@ -9,6 +9,8 @@ import org.apache.maven.plugin.testing.resources.TestResources;
 import org.junit.Rule;
 import org.junit.Test;
 
+import com.github.pfichtner.maedle.mojo.MaedleMojo;
+
 public class MaedleMojoConfigTest {
 
 	@Rule

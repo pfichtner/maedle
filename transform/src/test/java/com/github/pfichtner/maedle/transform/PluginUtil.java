@@ -19,6 +19,7 @@ import org.apache.maven.plugin.Mojo;
 
 import com.github.pfichtner.maedle.transform.util.jar.JarModifier;
 import com.github.pfichtner.maedle.transform.util.jar.PluginInfo;
+import com.pfichtner.github.maedle.transform.TransformMojoVisitor;
 import com.pfichtner.github.maedle.transform.TransformationParameters;
 
 public final class PluginUtil {
