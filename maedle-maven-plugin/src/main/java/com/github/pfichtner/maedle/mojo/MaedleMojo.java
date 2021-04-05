@@ -36,7 +36,7 @@ public class MaedleMojo extends AbstractMojo {
 	@Parameter(defaultValue = "${project.build.directory}/maedle-transformed-classes")
 	private File outputDirectory;
 
-	@Parameter(defaultValue = "${project.build.directory}/classes")
+	@Parameter(defaultValue = "${project.build.outputDirectory}", required = true)
 	private File classesDirectory;
 
 //	@Component
