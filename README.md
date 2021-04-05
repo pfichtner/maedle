@@ -12,7 +12,7 @@ Inside a JAR it searches for classes annotated with maven's ```@Mojo``` annotati
 - The Mojo class' superclass is replaced by ```java.lang.Object```
 - The Mojo class' ```@Mojo``` annotation is removed
 - The Mojo's class gets a new constructor where an instance of the exentsion class can be passed. The exentsion instance passed is stored as class attribute
-- A gradle plugin class is created. This class extends ```Plugin&lt;Project&gt;```. In the overriden ```apply``` method an instance of the extension class and an instance of the transformed mojo will be created and the extension is passed to the transformed mojo constructor. After that the mojo's ```execute``` method is called. 
+- A gradle plugin class is created. This class extends ```Plugin<Project>```. In the overriden ```apply``` method an instance of the extension class and an instance of the transformed mojo will be created and the extension is passed to the transformed mojo constructor. After that the mojo's ```execute``` method is called. 
 - Exceptions ```org.apache.maven.plugin.MojoFailureException``` and ```org.apache.maven.plugin.MojoExecutionException``` are replaced by ```org.gradle.api.tasks.TaskExecutionException```
 - Calls to maven's Logger will be replaced by call's to a Gradle Logger
 - META-INF entry is created which holds the information for gradle to be able to use the plugin
