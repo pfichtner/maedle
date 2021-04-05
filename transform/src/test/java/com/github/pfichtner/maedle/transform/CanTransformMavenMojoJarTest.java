@@ -11,6 +11,7 @@ import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.Files.copy;
 import static java.nio.file.Files.walkFileTree;
 import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayOutputStream;
@@ -30,9 +31,11 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.apache.maven.plugin.Mojo;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.objectweb.asm.Type;
@@ -63,20 +66,26 @@ class CanTransformMavenMojoJarTest {
 		addClass(tmpDir, nonMojoClass());
 		addClass(tmpDir, mojo);
 
-		Map<String, byte[]> beforeTransform = collectDirectory(tmpDir);
+		Set<String> filenamesBeforeTransform = stripBaseDir(collectDirectory(tmpDir), tmpDir).keySet();
 
+		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.maedle.some.target.packagename", "greeting");
 		walkFileTree(tmpDir.toPath(),
-				new TransformMojoVisitor(FileSystems.getDefault(), writeToDirectory(tmpDir),
-						ign -> new PluginInfo("com.github.pfichtner.maedle.some.target.packagename", "greeting"))
-								.withoutCopy());
+				new TransformMojoVisitor(FileSystems.getDefault(), writeToDirectory(tmpDir), ign -> pluginInfo)
+						.withCopy(false));
 
-		Map<String, byte[]> afterTransform = collectDirectory(tmpDir);
-
-		// TODO better asserts
-		assertThat(afterTransform).hasSize(beforeTransform.size() + 4) //
-				.containsKeys(beforeTransform.keySet().toArray(new String[beforeTransform.size()])) //
+		List<String> filenamesAdded = expectedFilenamesAdded(pluginInfo, mojo);
+		assertThat(stripBaseDir(collectDirectory(tmpDir), tmpDir)).hasSize(filenamesBeforeTransform.size() + 4) //
+				.containsKeys(filenamesBeforeTransform.toArray(new String[filenamesBeforeTransform.size()])) //
+				.containsKeys(filenamesAdded.toArray(new String[filenamesAdded.size()])) //
 		;
+	}
 
+	private Map<String, byte[]> stripBaseDir(Map<String, byte[]> map, File baseDir) {
+		return map.entrySet().stream().collect(toMap(stripBase(baseDir), Entry::getValue));
+	}
+
+	private Function<Entry<String, byte[]>, String> stripBase(File baseDir) {
+		return e -> e.getKey().substring(baseDir.toString().length());
 	}
 
 	private Map<String, byte[]> collectDirectory(File tmpDir) throws IOException {
@@ -102,23 +111,25 @@ class CanTransformMavenMojoJarTest {
 		transform(inJar, outJar, t -> pluginInfo);
 		Set<String> classNamesOfInJar = collectJarContents(inJar).keySet();
 
-		String pkgName = mojo.getPackage().getName();
-		String internal = "/" + (pkgName + ".").replace('.', '/');
-
-		List<String> filenamesAdded = asList( //
-				"/META-INF/gradle-plugins/" + pluginInfo.pluginId + ".properties", //
-				internal + "GreeterMojoGradlePlugin.class", //
-				internal + "GreeterMojoRewritten.class", //
-				internal + "GreeterMojoGradlePluginExtension.class" //
-		);
-
+		List<String> filenamesAdded = expectedFilenamesAdded(pluginInfo, mojo);
 		assertThat(collectJarContents(outJar)).hasSize(classNamesOfInJar.size() + filenamesAdded.size()) //
 				.containsKeys(classNamesOfInJar.toArray(new String[classNamesOfInJar.size()])) //
 				.containsKeys(filenamesAdded.toArray(new String[filenamesAdded.size()])) //
 		;
 
-		verifyCanLoadClass(outJar, pkgName + ".GreeterMojoGradlePlugin");
+		verifyCanLoadClass(outJar, mojo.getPackage().getName() + ".GreeterMojoGradlePlugin");
 		verifyTransformed(tmpDir, outJar, pluginInfo);
+	}
+
+	private List<String> expectedFilenamesAdded(PluginInfo pluginInfo, Class<? extends Mojo> mojo) {
+		String pkgName = mojo.getPackage().getName();
+		String internal = "/" + (pkgName + ".").replace('.', '/');
+		return asList( //
+				"/META-INF/gradle-plugins/" + pluginInfo.pluginId + ".properties", //
+				internal + "GreeterMojoGradlePlugin.class", //
+				internal + "GreeterMojoRewritten.class", //
+				internal + "GreeterMojoGradlePluginExtension.class" //
+		);
 	}
 
 	private static void verifyCanLoadClass(File outJar, String name) throws InstantiationException,
