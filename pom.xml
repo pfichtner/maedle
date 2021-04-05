@@ -17,6 +17,7 @@
 		<module>gradle-plugin-mixin</module>
 		<module>maven-test-project</module>
 		<module>maedle-maven-plugin</module>
+		<module>maedle-maven-plugin-shade</module>
 	</modules>
 
 	<build>
