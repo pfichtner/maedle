@@ -1,6 +1,5 @@
 package com.pfichtner.github.maedle.transform;
 
-import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static org.objectweb.asm.ClassReader.EXPAND_FRAMES;
 import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
 import static org.objectweb.asm.ClassWriter.COMPUTE_MAXS;
@@ -27,7 +26,7 @@ import static org.objectweb.asm.Opcodes.POP;
 import static org.objectweb.asm.Opcodes.RETURN;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
+import java.io.InputStream;
 import java.util.Objects;
 
 import org.objectweb.asm.ClassReader;
@@ -62,18 +61,10 @@ public class PluginWriter {
 	private static byte[] createPluginMixin(String pluginClass, String extensionClass, String mojoClass,
 			String taskName, String extensionName)
 			throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-		Class<?> plugin = com.pfichtner.github.maedle.MaedlePluginTemplate.class;
-		Type pluginType = Type.getType(plugin);
+
+		Type pluginType = Type.getObjectType("com/pfichtner/github/maedle/MaedlePluginTemplate");
 		Type extensionType = Type.getType(com.pfichtner.github.maedle.E.class);
 		Type mojoType = Type.getType(com.pfichtner.github.maedle.M.class);
-		Field extensionField = plugin.getDeclaredField("E_NAME");
-		Object extensionFieldValue = extensionField.get(null);
-		Field taskField = plugin.getDeclaredField("T_NAME");
-		Object taskFieldValue = taskField.get(null);
-
-		if (Objects.equals(taskFieldValue, extensionFieldValue)) {
-			throw new IllegalStateException();
-		}
 
 		ClassWriter cw1 = new ClassWriter(COMPUTE_FRAMES | COMPUTE_MAXS);
 		try {
@@ -99,9 +90,9 @@ public class PluginWriter {
 				@Override
 				public FieldVisitor visitField(int access, String name, String descriptor, String signature,
 						Object value) {
-					if (name.equals(taskField.getName())) {
+					if (name.equals("T_NAME")) {
 						value = taskName;
-					} else if (name.equals(extensionField.getName())) {
+					} else if (name.equals("E_NAME")) {
 						value = extensionName;
 					}
 					return super.visitField(access, name, descriptor, signature, value);
@@ -115,9 +106,9 @@ public class PluginWriter {
 						@Override
 						public void visitLdcInsn(Object cst) {
 							// replace compile time constants
-							if (Objects.equals(taskFieldValue, cst)) {
+							if (Objects.equals(MaedlePluginTemplate.T_NAME, cst)) {
 								cst = taskName;
-							} else if (Objects.equals(extensionFieldValue, cst)) {
+							} else if (Objects.equals(MaedlePluginTemplate.E_NAME, cst)) {
 								cst = extensionName;
 							}
 							super.visitLdcInsn(cst);
@@ -125,12 +116,15 @@ public class PluginWriter {
 					};
 				}
 			};
-
-			new ClassReader(asStream(MaedlePluginTemplate.class)).accept(cw3, EXPAND_FRAMES);
+			new ClassReader(stream(pluginType)).accept(cw3, EXPAND_FRAMES);
 			return cw1.toByteArray();
 		} catch (IOException | SecurityException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	private static InputStream stream(Type pluginType) {
+		return PluginWriter.class.getClassLoader().getResourceAsStream(pluginType.getInternalName() + ".class");
 	}
 
 	private static byte[] createPluginAsm(String pluginClass, String extensionClass, String mojoClass, String taskName,
