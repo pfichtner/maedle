@@ -16,6 +16,7 @@ import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.objectweb.asm.Type;
 
 import com.github.pfichtner.maedle.transform.util.jar.PluginInfo;
 import com.pfichtner.github.maedle.transform.TransformMojoVisitor;
@@ -59,10 +60,9 @@ public class MaedleMojo extends AbstractMojo {
 			throw new MojoExecutionException("Cannot create output directory " + outputDirectory);
 		}
 
-		PluginInfo pluginInfo = new PluginInfo("foo", "bar");
 		try {
 			walkFileTree(classesDirectory.toPath(), new TransformMojoVisitor(FileSystems.getDefault(),
-					writeToDirectory(outputDirectory), t -> pluginInfo).withCopy(false));
+					writeToDirectory(outputDirectory), MaedleMojo::createPluginInfo).withCopy(false));
 		} catch (IOException e) {
 			throw new MojoFailureException("error reading " + classesDirectory, e);
 		}
@@ -70,6 +70,12 @@ public class MaedleMojo extends AbstractMojo {
 		Resource resource = new Resource();
 		resource.setDirectory(outputDirectory.toString());
 		project.getResources().add(resource);
+	}
+
+	private static PluginInfo createPluginInfo(Type type) {
+		String className = type.getClassName();
+		int lastSlashAt = className.lastIndexOf('/');
+		return new PluginInfo(lastSlashAt >= 0 ? className.substring(0, lastSlashAt) : className, "extname");
 	}
 
 	public MavenProject getProject() {
