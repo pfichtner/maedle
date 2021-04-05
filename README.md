@@ -88,7 +88,9 @@ public class GreetingPlugin implements Plugin<Project> {
 
 Not yet implemented
 - Only working if Mojo extends ```AbstractMojo``` (getLog)
-- @Parameter's defaultValue
+- @Parameter's defaultValue, (e.g. @Parameter(defaultValue = "${project.build.directory}/foobar")
+- @Parameter#s readOnly attribute
+- Nested parameter names @Parameter(property = "foo.bar.myproperty")
 - transform MavenProject, access jar file
 ```
 Jar jarTask = (Jar) project.task("jar");

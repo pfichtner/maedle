@@ -19,7 +19,6 @@ import org.apache.maven.plugin.Mojo;
 
 import com.github.pfichtner.maedle.transform.util.jar.JarModifier;
 import com.github.pfichtner.maedle.transform.util.jar.PluginInfo;
-import com.github.pfichtner.maedle.transform.util.jar.ToJarAdder;
 import com.pfichtner.github.maedle.transform.TransformationParameters;
 
 public final class PluginUtil {
@@ -40,7 +39,8 @@ public final class PluginUtil {
 		pluginJar.delete();
 		try (JarModifier jarWriter = new JarModifier(pluginJar, true)) {
 			TransformationParameters parameters = fromMojo(toBytes(asStream(mojoClass)));
-			new ToJarAdder(jarWriter).add(parameters, append(parameters.getMojoClass(), "GradlePlugin"), pluginInfo);
+			TransformMojoVisitor.transformTo((content, path) -> jarWriter.add(content, path), parameters,
+					append(parameters.getMojoClass(), "GradlePlugin"), pluginInfo);
 		}
 		return pluginJar;
 	}

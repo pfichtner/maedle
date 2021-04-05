@@ -9,12 +9,17 @@ import org.objectweb.asm.Type;
 import com.pfichtner.github.maedle.transform.TransformationParameters;
 import com.pfichtner.github.maedle.transform.TransformationResult;
 
-public class ToJarAdder {
+@Deprecated
+public class ToResourceTransformer {
 
-	private JarModifier jarWriter;
+	public static interface Resource {
+		void add(byte[] content, String path) throws IOException;
+	}
 
-	public ToJarAdder(JarModifier jarWriter) {
-		this.jarWriter = jarWriter;
+	private final Resource resource;
+
+	public ToResourceTransformer(Resource resource) {
+		this.resource = resource;
 	}
 
 	public void add(TransformationParameters parameters, Type pluginType, PluginInfo pluginInfo) throws IOException {
@@ -37,7 +42,7 @@ public class ToJarAdder {
 	}
 
 	public void add(byte[] content, String path) throws IOException {
-		jarWriter.add(content, path);
+		resource.add(content, path);
 	}
 
 	private static String toPath(Type type) {

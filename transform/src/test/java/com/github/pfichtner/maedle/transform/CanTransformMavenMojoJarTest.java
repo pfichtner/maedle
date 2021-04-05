@@ -2,11 +2,14 @@ package com.github.pfichtner.maedle.transform;
 
 import static com.github.pfichtner.maedle.transform.PluginUtil.createProjectBuildFile;
 import static com.github.pfichtner.maedle.transform.PluginUtil.createProjectSettingsFile;
-import static com.pfichtner.github.maedle.transform.TransformationParameters.fromMojo;
-import static com.pfichtner.github.maedle.transform.util.AsmUtil.append;
+import static com.github.pfichtner.maedle.transform.ResourceAddables.writeToDirectory;
+import static com.github.pfichtner.maedle.transform.ResourceAddables.writeToJar;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
+import static com.pfichtner.github.maedle.transform.util.IoUtils.ensureDirectoryExists;
+import static com.pfichtner.github.maedle.transform.util.IoUtils.writeFile;
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.Files.copy;
+import static java.nio.file.Files.walkFileTree;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -18,10 +21,10 @@ import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
@@ -37,13 +40,54 @@ import org.objectweb.asm.Type;
 import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
 import com.github.pfichtner.maedle.transform.util.jar.JarModifier;
 import com.github.pfichtner.maedle.transform.util.jar.PluginInfo;
-import com.github.pfichtner.maedle.transform.util.jar.ToJarAdder;
-import com.pfichtner.github.maedle.transform.TransformationParameters;
 
 class CanTransformMavenMojoJarTest {
 
+	private static final class CollectToMap extends SimpleFileVisitor<Path> {
+
+		private final Map<String, byte[]> content = new HashMap<>();
+
+		@Override
+		public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) throws IOException {
+			String key = path.toString();
+			if (content.put(key, read(path)) != null) {
+				throw new IllegalStateException("Duplicate entry for " + key);
+			}
+			return CONTINUE;
+		}
+	}
+
 	@Test
-	void canTransformMavenMojoJarToGradlePlugin(@TempDir File tmpDir) throws Exception {
+	void canTransformMavenMojoJarToGradlePluginInDirectory(@TempDir File tmpDir) throws Exception {
+		Class<GreeterMojo> mojo = GreeterMojo.class;
+		addClass(tmpDir, nonMojoClass());
+		addClass(tmpDir, mojo);
+
+		Map<String, byte[]> beforeTransform = collectDirectory(tmpDir);
+
+		walkFileTree(tmpDir.toPath(),
+				new TransformMojoVisitor(FileSystems.getDefault(), writeToDirectory(tmpDir),
+						ign -> new PluginInfo("com.github.pfichtner.maedle.some.target.packagename", "greeting"))
+								.withoutCopy());
+
+		Map<String, byte[]> afterTransform = collectDirectory(tmpDir);
+
+		// TODO better asserts
+		assertThat(afterTransform).hasSize(beforeTransform.size() + 4) //
+				.containsKeys(beforeTransform.keySet().toArray(new String[beforeTransform.size()])) //
+		;
+
+	}
+
+	private Map<String, byte[]> collectDirectory(File tmpDir) throws IOException {
+		CollectToMap visitor = new CollectToMap();
+		walkFileTree(tmpDir.toPath(), visitor);
+		Map<String, byte[]> content = visitor.content;
+		return content;
+	}
+
+	@Test
+	void canTransformMavenMojoJarToGradlePluginInJar(@TempDir File tmpDir) throws Exception {
 		Class<GreeterMojo> mojo = GreeterMojo.class;
 		File inJar = new File(tmpDir, "in.jar");
 		File outJar = new File(tmpDir, "out.jar");
@@ -105,20 +149,17 @@ class CanTransformMavenMojoJarTest {
 	}
 
 	private static Map<String, byte[]> collectJarContents(File jar) throws IOException {
-		Map<String, byte[]> content = new HashMap<>();
+		CollectToMap visitor = new CollectToMap();
 		try (JarModifier jarReader = new JarModifier(jar, false)) {
-			jarReader.readJar(new SimpleFileVisitor<Path>() {
-				@Override
-				public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) throws IOException {
-					String key = path.toString();
-					if (content.put(key, read(path)) != null) {
-						throw new IllegalStateException("Duplicate entry for " + key);
-					}
-					return CONTINUE;
-				}
-			});
+			jarReader.readJar(visitor);
 		}
-		return content;
+		return visitor.content;
+	}
+
+	private static byte[] read(Path file) throws IOException {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		copy(file, baos);
+		return baos.toByteArray();
 	}
 
 	private static Class<?> nonMojoClass() {
@@ -130,43 +171,17 @@ class CanTransformMavenMojoJarTest {
 		jarWriter.add(asStream(clazz), clazz.getName().replace('.', '/') + ".class");
 	}
 
+	private static void addClass(File baseDir, Class<?> clazz)
+			throws IOException, FileNotFoundException, URISyntaxException {
+		File target = new File(baseDir, clazz.getName().replace('.', '/') + ".class");
+		ensureDirectoryExists(target.getParentFile());
+		writeFile(target, asStream(clazz));
+	}
+
 	private void transform(File jar, File outJar, Function<Type, PluginInfo> infoProvider) throws IOException {
-		try (JarModifier reader = new JarModifier(jar, false)) {
-			try (JarModifier writer = new JarModifier(outJar, true)) {
-				reader.readJar(visitor(reader.getFileSystem().getPathMatcher("glob:**.class"), new ToJarAdder(writer),
-						infoProvider));
-			}
+		try (JarModifier reader = new JarModifier(jar, false); JarModifier writer = new JarModifier(outJar, true)) {
+			reader.readJar(new TransformMojoVisitor(reader.getFileSystem(), writeToJar(writer), infoProvider));
 		}
 	}
 
-	private SimpleFileVisitor<Path> visitor(PathMatcher matcher, ToJarAdder adder,
-			Function<Type, PluginInfo> infoProvider) {
-		return new SimpleFileVisitor<Path>() {
-
-			@Override
-			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-				byte[] content = read(file);
-
-				String path = file.toString();
-				adder.add(content, path.startsWith("/") ? path.substring(1) : path);
-
-				if (matcher.matches(file)) {
-					TransformationParameters parameters = fromMojo(content);
-					if (parameters.getMojoData().isMojo()) {
-						Type originalMojoType = parameters.getMojoClass();
-						adder.add(parameters.withMojoClass(append(originalMojoType, "Rewritten")),
-								append(originalMojoType, "GradlePlugin"), infoProvider.apply(originalMojoType));
-					}
-				}
-				return CONTINUE;
-			}
-
-		};
-	}
-
-	private static byte[] read(Path file) throws IOException {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		copy(file, baos);
-		return baos.toByteArray();
-	}
 }
