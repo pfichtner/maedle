@@ -1,4 +1,4 @@
-package com.github.pfichtner.maedle.transform;
+package com.pfichtner.github.maedle.transform;
 
 import static com.pfichtner.github.maedle.transform.util.IoUtils.ensureDirectoryExists;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.writeFile;

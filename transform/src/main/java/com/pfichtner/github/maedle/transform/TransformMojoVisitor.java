@@ -1,4 +1,4 @@
-package com.github.pfichtner.maedle.transform;
+package com.pfichtner.github.maedle.transform;
 
 import static com.pfichtner.github.maedle.transform.PluginWriter.createPlugin;
 import static com.pfichtner.github.maedle.transform.TransformationParameters.fromMojo;
@@ -19,8 +19,6 @@ import java.util.function.Function;
 import org.objectweb.asm.Type;
 
 import com.github.pfichtner.maedle.transform.util.jar.PluginInfo;
-import com.pfichtner.github.maedle.transform.TransformationParameters;
-import com.pfichtner.github.maedle.transform.TransformationResult;
 
 public class TransformMojoVisitor extends SimpleFileVisitor<Path> {
 

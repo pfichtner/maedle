@@ -1,4 +1,4 @@
-package com.github.pfichtner.maedle.transform;
+package com.pfichtner.github.maedle.transform;
 
 import java.io.IOException;
 
