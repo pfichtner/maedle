@@ -36,8 +36,8 @@ public class TransformMojoVisitor extends SimpleFileVisitor<Path> {
 		this.infoProvider = infoProvider;
 	}
 
-	public TransformMojoVisitor withoutCopy() {
-		this.copy = false;
+	public TransformMojoVisitor withCopy(boolean copy) {
+		this.copy = copy;
 		return this;
 	}
 
