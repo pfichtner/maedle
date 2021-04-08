@@ -7,10 +7,13 @@ import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.toBytes;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 
 import org.apache.maven.plugin.Mojo;
+import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.Remapper;
+import org.objectweb.asm.tree.ClassNode;
 
 import com.pfichtner.github.maedle.transform.TransformationParameters;
 import com.pfichtner.github.maedle.transform.TransformationResult;
@@ -36,8 +39,13 @@ public final class MojoLoader {
 	 * @return
 	 * @throws Exception
 	 */
-	public Object transformedInstance() throws Exception {
-		return load(mojo, parameters, transform());
+	public Object transformedInstance() throws IOException {
+		try {
+			return load(mojo, parameters, transform());
+		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+				| NoSuchMethodException | SecurityException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public TransformationResult transform() throws IOException {
@@ -57,8 +65,24 @@ public final class MojoLoader {
 		return new TransformationResult(parameters);
 	}
 
+	public ClassNode transformedMojoNode() throws IOException {
+		return node(transform().getTransformedMojo());
+	}
+
+	public ClassNode extensionNode() throws IOException {
+		return node(transform().getExtension());
+	}
+
+	private ClassNode node(byte[] bytes) {
+		ClassReader cr = new ClassReader(bytes);
+		ClassNode node = new ClassNode();
+		cr.accept(node, 0);
+		return node;
+	}
+
 	private static Object load(Mojo originalMojo, TransformationParameters parameters, TransformationResult result)
-			throws Exception {
+			throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
+			NoSuchMethodException, SecurityException {
 		AsmClassLoader asmClassLoader = new AsmClassLoader(Thread.currentThread().getContextClassLoader());
 		Class<?> mojoClass = loadClass(asmClassLoader, parameters.getMojoData().getMojoType(),
 				result.getTransformedMojo());

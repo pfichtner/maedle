@@ -2,18 +2,24 @@ package com.github.pfichtner.maedle.transform;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOut;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.constructor;
+import static com.pfichtner.github.maedle.transform.util.CollectionUtil.nonNull;
 import static java.util.Arrays.stream;
-import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import org.apache.maven.plugin.Mojo;
 import org.junit.jupiter.api.Test;
+import org.objectweb.asm.tree.AnnotationNode;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldNode;
 
 import com.github.pfichtner.greeter.mavenplugin.GreeterMojo2;
 import com.github.pfichtner.maedle.transform.loader.MojoLoader;
@@ -47,17 +53,27 @@ public class GreeterMojoTest2 {
 	@Test
 	void verifyMojoClassAndExtensionsClassFieldsHaveNoMavenAnnotations() throws Exception {
 		GreeterMojo2 greeterMojo = new GreeterMojo2();
-		Object transformedInstance = transformedInstance(greeterMojo);
-		assertThat(annotationsOf(transformedInstance)).isEmpty();
-		assertThat(fieldAnnotationsOf(extensionClassOf(transformedInstance))).isEmpty();
+		MojoLoader mojoLoader = new MojoLoader(greeterMojo);
+		ClassNode transformedMojoNode = mojoLoader.transformedMojoNode();
+		assertEmpty(nonNull(transformedMojoNode.visibleAnnotations));
+		assertEmpty(nonNull(transformedMojoNode.invisibleAnnotations));
+
+		ClassNode extensionNode = mojoLoader.extensionNode();
+		assertEmpty(fieldAnnos(extensionNode, f -> f.visibleAnnotations));
+		assertEmpty(fieldAnnos(extensionNode, f -> f.invisibleAnnotations));
 	}
 
-	private static Stream<Annotation> annotationsOf(Object o) {
-		return stream(o.getClass().getAnnotations());
+	private Stream<AnnotationNode> fieldAnnos(ClassNode extensionNode,
+			Function<FieldNode, List<AnnotationNode>> function) {
+		return extensionNode.fields.stream().map(function).filter(Objects::nonNull).flatMap(Collection::stream);
 	}
 
-	private static Stream<Annotation> fieldAnnotationsOf(Class<?> clazz) {
-		return stream(clazz.getDeclaredFields()).map(f -> stream(f.getAnnotations())).flatMap(identity());
+	private void assertEmpty(List<AnnotationNode> list) {
+		assertEmpty(list.stream());
+	}
+
+	private void assertEmpty(Stream<AnnotationNode> stream) {
+		assertThat(stream.map(n -> n.desc)).isEmpty();
 	}
 
 	private static Object transformedInstance(Mojo mojo) throws Exception, IOException {

@@ -1,5 +1,7 @@
 package com.pfichtner.github.maedle.transform;
 
+import static com.pfichtner.github.maedle.transform.util.AsmUtil.isType;
+
 import java.util.function.Predicate;
 
 import org.objectweb.asm.Type;
@@ -15,11 +17,12 @@ public final class Constants {
 	public static final Type MAVEN_MOJO_EXECUTION_EXCEPTION = Type
 			.getObjectType("org/apache/maven/plugin/MojoExecutionException");
 
-	public static final Predicate<? super AnnotationNode> isMojoAnnotation = a -> MOJO_ANNOTATION
-			.equals(Type.getType(a.desc));
-
 	public static final Type mavenParameterAnnotation = Type
 			.getObjectType("org/apache/maven/plugins/annotations/Parameter");
+
+	public static final Predicate<? super AnnotationNode> isMojoAnnotation = isType(MOJO_ANNOTATION);
+
+	public static final Predicate<? super AnnotationNode> isParameterAnnotation = isType(mavenParameterAnnotation);
 
 	private Constants() {
 		super();

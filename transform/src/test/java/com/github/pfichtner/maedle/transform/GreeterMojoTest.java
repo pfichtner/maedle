@@ -4,16 +4,19 @@ import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOut;
 import static com.pfichtner.github.maedle.transform.MojoClassAnalyser.mojoData;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.constructor;
+import static com.pfichtner.github.maedle.transform.util.CollectionUtil.nonNull;
 import static java.util.Arrays.stream;
-import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import org.apache.maven.plugin.Mojo;
@@ -22,6 +25,9 @@ import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.AnnotationNode;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldNode;
 
 import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
 import com.github.pfichtner.maedle.transform.loader.MojoLoader;
@@ -110,32 +116,38 @@ public class GreeterMojoTest {
 	@Test
 	void verifyExtensionClassHasNoMethods() throws Exception {
 		GreeterMojo greeterMojo = new GreeterMojo();
-		Class<?> extensionClass = transformedExtensionClass(greeterMojo);
-		assertThat(stream(extensionClass.getDeclaredMethods()).map(Method::getName)).isEmpty();
+		Object transformedInstance = transformedInstance(greeterMojo);
+		assertThat(stream(extensionClassOf(transformedInstance).getDeclaredMethods()).map(Method::getName)).isEmpty();
 	}
 
 	@Test
 	void verifyMojoClassAndExtensionsClassFieldsHaveNoMavenAnnotations() throws Exception {
-		// TODO when commenting out StripMojoTransformer#accept removal of annotations this test is still passing: Why!?
 		GreeterMojo greeterMojo = new GreeterMojo();
-		assertThat(annotationsOf(transformedInstance(greeterMojo))).isEmpty();
-		assertThat(fieldAnnotationsOf(transformedExtensionClass(greeterMojo))).isEmpty();
+		MojoLoader mojoLoader = new MojoLoader(greeterMojo);
+		ClassNode transformedMojoNode = mojoLoader.transformedMojoNode();
+		assertEmpty(nonNull(transformedMojoNode.visibleAnnotations));
+		assertEmpty(nonNull(transformedMojoNode.invisibleAnnotations));
+
+		ClassNode extensionNode = mojoLoader.extensionNode();
+		assertEmpty(fieldAnnos(extensionNode, f -> f.visibleAnnotations));
+		assertEmpty(fieldAnnos(extensionNode, f -> f.invisibleAnnotations));
 	}
 
-	private static Stream<Annotation> annotationsOf(Object o) {
-		return stream(o.getClass().getAnnotations());
+	private Stream<AnnotationNode> fieldAnnos(ClassNode extensionNode,
+			Function<FieldNode, List<AnnotationNode>> function) {
+		return extensionNode.fields.stream().map(function).filter(Objects::nonNull).flatMap(Collection::stream);
 	}
 
-	private static Stream<Annotation> fieldAnnotationsOf(Class<?> clazz) {
-		return stream(clazz.getDeclaredFields()).map(f -> stream(f.getAnnotations())).flatMap(identity());
+	private void assertEmpty(List<AnnotationNode> list) {
+		assertEmpty(list.stream());
 	}
 
-	private static Object transformedInstance(Mojo mojo) throws Exception, IOException {
+	private void assertEmpty(Stream<AnnotationNode> stream) {
+		assertThat(stream.map(n -> n.desc)).isEmpty();
+	}
+
+	private static Object transformedInstance(Mojo mojo) throws IOException {
 		return new MojoLoader(mojo).transformedInstance();
-	}
-
-	private static Class<?> transformedExtensionClass(Mojo mojo) throws Exception, IOException {
-		return extensionClassOf(transformedInstance(mojo));
 	}
 
 	private static Class<?> extensionClassOf(Object transformedMojoInstance) {

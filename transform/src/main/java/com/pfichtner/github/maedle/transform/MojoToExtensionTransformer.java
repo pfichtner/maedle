@@ -1,8 +1,10 @@
 package com.pfichtner.github.maedle.transform;
 
 import static com.pfichtner.github.maedle.transform.Constants.isMojoAnnotation;
+import static com.pfichtner.github.maedle.transform.Constants.isParameterAnnotation;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.JAVA_LANG_OBJECT;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.isConstructor;
+import static com.pfichtner.github.maedle.transform.util.AsmUtil.makePublic;
 import static com.pfichtner.github.maedle.transform.util.CollectionUtil.nonNull;
 import static org.objectweb.asm.Opcodes.ASM9;
 import static org.objectweb.asm.Opcodes.PUTFIELD;
@@ -20,7 +22,6 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import com.pfichtner.github.maedle.transform.MojoClassAnalyser.MojoData;
-import com.pfichtner.github.maedle.transform.util.AsmUtil;
 
 public class MojoToExtensionTransformer extends ClassNode {
 
@@ -33,7 +34,11 @@ public class MojoToExtensionTransformer extends ClassNode {
 		nonNull(invisibleAnnotations).removeIf(isMojoAnnotation);
 		nonNull(visibleAnnotations).removeIf(isMojoAnnotation);
 		nonNull(fields).removeIf(f -> !isMojoAttribute(f));
-		nonNull(fields).stream().filter(this::isMojoAttribute).forEach(MojoToExtensionTransformer::makePublic);
+		nonNull(fields).stream().filter(this::isMojoAttribute).forEach(f -> {
+			f.access = makePublic(f.access);
+			nonNull(f.visibleAnnotations).removeIf(isParameterAnnotation);
+			nonNull(f.invisibleAnnotations).removeIf(isParameterAnnotation);
+		});
 		nonNull(methods).removeIf(m -> !isConstructor(m));
 		nonNull(methods).stream().filter(m -> isConstructor(m)).forEach(this::fixConstructor);
 		accept(classVisitor);
@@ -45,10 +50,6 @@ public class MojoToExtensionTransformer extends ClassNode {
 
 	private boolean isMojoAttribute(String fieldName) {
 		return mojoData.getMojoParameterFields().stream().map(n -> n.name).anyMatch(fieldName::equals);
-	}
-
-	private static void makePublic(FieldNode fieldNode) {
-		fieldNode.access = AsmUtil.makePublic(fieldNode.access);
 	}
 
 	private void fixConstructor(MethodNode methodNode) {
