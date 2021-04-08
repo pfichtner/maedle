@@ -11,8 +11,10 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.stream.Stream;
 
 import org.apache.maven.plugin.Mojo;
 import org.apache.maven.plugin.MojoFailureException;
@@ -60,14 +62,14 @@ public class GreeterMojoTest {
 	@Test
 	void worksForNonMojoClasses() throws Exception {
 		GreeterMojo greeterMojo = new GreeterMojo();
-		Object transformedMojoInstance = new MojoLoader(greeterMojo).transformedInstance();
+		Object transformedMojoInstance = transformedInstance(greeterMojo);
 		Class<?> extensionClass = extensionClassOf(transformedMojoInstance);
 //		
 		ClassWriter classWriter = new ClassWriter(0);
 
 		MojoData mojoData = mojoData(new ClassReader(asStream(GreeterMojoTest.class)));
-		StripMojoTransformer mojoToGradleTransformer = new StripMojoTransformer(classWriter,
-				mojoData.getMojoType(), Type.getType(extensionClass), mojoData);
+		StripMojoTransformer mojoToGradleTransformer = new StripMojoTransformer(classWriter, mojoData.getMojoType(),
+				Type.getType(extensionClass), mojoData);
 		new ClassReader(asStream(GreeterMojoTest.class)).accept(mojoToGradleTransformer, 0);
 //		new ClassReader(asStream(extensionClass)).accept(mojoToGradleTransformer, 0);
 
@@ -78,7 +80,7 @@ public class GreeterMojoTest {
 	@Test
 	void transformedMojoHasSameBehaviorLikeOriginalMojo() throws Exception {
 		GreeterMojo greeterMojo = new GreeterMojo();
-		Object transformedMojoInstance = new MojoLoader(greeterMojo).transformedInstance();
+		Object transformedMojoInstance = transformedInstance(greeterMojo);
 		haveSameSysouts(() -> executeMojo(greeterMojo), () -> executeMojo(transformedMojoInstance));
 	}
 
@@ -88,7 +90,7 @@ public class GreeterMojoTest {
 	void fieldInitializersAreCopiedFromMojoToExtensionClass() throws Exception {
 		GreeterMojo greeterMojo = new GreeterMojo();
 		greeterMojo.greeter = "Stranger";
-		Object transformedMojoInstance = new MojoLoader(greeterMojo).transformedInstance();
+		Object transformedMojoInstance = transformedInstance(greeterMojo);
 		haveSameSysouts(() -> executeMojo(greeterMojo), () -> executeMojo(transformedMojoInstance));
 	}
 
@@ -96,7 +98,7 @@ public class GreeterMojoTest {
 	void exceptionsIsMapped() throws Exception {
 		GreeterMojo greeterMojo = new GreeterMojo();
 		greeterMojo.greeter = null;
-		Object transformedMojoInstance = new MojoLoader(greeterMojo).transformedInstance();
+		Object transformedMojoInstance = transformedInstance(greeterMojo);
 		Throwable e1 = getExceptionThrown(() -> executeMojo(greeterMojo));
 		Throwable e2 = getExceptionThrown(() -> executeMojo(transformedMojoInstance));
 		assertAll( //
@@ -113,11 +115,19 @@ public class GreeterMojoTest {
 	}
 
 	@Test
-	void verifyExtensionClassFieldsHaveNoMavenAnnotations() throws Exception {
+	void verifyMojoClassAndExtensionsClassFieldsHaveNoMavenAnnotations() throws Exception {
+		// TODO when commenting out StripMojoTransformer#accept removal of annotations this test is still passing: Why!?
 		GreeterMojo greeterMojo = new GreeterMojo();
-		Class<?> extensionClass = transformedExtensionClass(greeterMojo);
-		assertThat(stream(extensionClass.getDeclaredFields()).map(f -> stream(f.getAnnotations())).flatMap(identity()))
-				.isEmpty();
+		assertThat(annotationsOf(transformedInstance(greeterMojo))).isEmpty();
+		assertThat(fieldAnnotationsOf(transformedExtensionClass(greeterMojo))).isEmpty();
+	}
+
+	private static Stream<Annotation> annotationsOf(Object o) {
+		return stream(o.getClass().getAnnotations());
+	}
+
+	private static Stream<Annotation> fieldAnnotationsOf(Class<?> clazz) {
+		return stream(clazz.getDeclaredFields()).map(f -> stream(f.getAnnotations())).flatMap(identity());
 	}
 
 	private static Object transformedInstance(Mojo mojo) throws Exception, IOException {

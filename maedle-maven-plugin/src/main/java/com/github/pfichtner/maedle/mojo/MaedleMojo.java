@@ -1,6 +1,7 @@
 package com.github.pfichtner.maedle.mojo;
 
 import static com.pfichtner.github.maedle.transform.ResourceAddables.writeToDirectory;
+import static com.pfichtner.github.maedle.transform.util.IoUtils.copyTree;
 import static java.nio.file.Files.walkFileTree;
 import static org.apache.maven.plugins.annotations.LifecyclePhase.PROCESS_CLASSES;
 
@@ -19,6 +20,7 @@ import org.apache.maven.project.MavenProject;
 import org.objectweb.asm.Type;
 
 import com.github.pfichtner.maedle.transform.util.jar.PluginInfo;
+import com.pfichtner.github.maedle.transform.ResourceAddable;
 import com.pfichtner.github.maedle.transform.TransformMojoVisitor;
 
 @Mojo(name = MaedleMojo.GOAL, defaultPhase = PROCESS_CLASSES)
@@ -54,22 +56,46 @@ public class MaedleMojo extends AbstractMojo {
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
-		// TODO project.isExecutionRoot();
-
-		if (!outputDirectory.exists() && !outputDirectory.mkdirs()) {
-			throw new MojoExecutionException("Cannot create output directory " + outputDirectory);
+		if (classesDirectory.exists()) {
+			// TODO project.isExecutionRoot();
+			if (!outputDirectory.exists() && !outputDirectory.mkdirs()) {
+				throw new MojoExecutionException("Cannot create output directory " + outputDirectory);
+			}
+			transform();
 		}
+	}
 
+	private void transform() throws MojoFailureException {
 		try {
-			walkFileTree(classesDirectory.toPath(), new TransformMojoVisitor(FileSystems.getDefault(),
-					writeToDirectory(outputDirectory), MaedleMojo::createPluginInfo).withCopy(false));
+			walkFileTree(classesDirectory.toPath(),
+					new TransformMojoVisitor(FileSystems.getDefault(),
+							combine(log(), writeToDirectory(outputDirectory)), MaedleMojo::createPluginInfo)
+									.withCopy(false));
+			walkFileTree(outputDirectory.toPath(), copyTree(outputDirectory, classesDirectory));
 		} catch (IOException e) {
 			throw new MojoFailureException("error reading " + classesDirectory, e);
 		}
 
+//		Resource resource = resource();
+//		getLog().info("Adding resource " + resource);
+//		project.addResource(resource);
+	}
+
+	private Resource resource() {
 		Resource resource = new Resource();
 		resource.setDirectory(outputDirectory.toString());
-		project.getResources().add(resource);
+		return resource;
+	}
+
+	private ResourceAddable log() {
+		return (content, path) -> getLog().info("Adding " + path + " to " + outputDirectory);
+	}
+
+	private static ResourceAddable combine(ResourceAddable addable1, ResourceAddable addable2) {
+		return (content, path) -> {
+			addable1.add(content, path);
+			addable2.add(content, path);
+		};
 	}
 
 	private static PluginInfo createPluginInfo(Type type) {

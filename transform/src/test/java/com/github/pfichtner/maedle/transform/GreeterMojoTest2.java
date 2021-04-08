@@ -6,9 +6,13 @@ import static java.util.Arrays.stream;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.stream.Stream;
 
+import org.apache.maven.plugin.Mojo;
 import org.junit.jupiter.api.Test;
 
 import com.github.pfichtner.greeter.mavenplugin.GreeterMojo2;
@@ -20,7 +24,7 @@ public class GreeterMojoTest2 {
 	@Test
 	void transformedMojoHasSameBehaviorLikeOriginalMojo() throws Exception {
 		GreeterMojo2 greeterMojo = new GreeterMojo2();
-		Object transformedMojoInstance = new MojoLoader(greeterMojo).transformedInstance();
+		Object transformedMojoInstance = transformedInstance(greeterMojo);
 		haveSameSysouts(() -> executeMojo(greeterMojo), () -> executeMojo(transformedMojoInstance));
 	}
 
@@ -29,24 +33,35 @@ public class GreeterMojoTest2 {
 		GreeterMojo2 greeterMojo = new GreeterMojo2();
 		greeterMojo.setMessage("Message from JUnit");
 
-		Object transformedMojoInstance = new MojoLoader(greeterMojo).transformedInstance();
+		Object transformedMojoInstance = transformedInstance(greeterMojo);
 		haveSameSysouts(() -> executeMojo(greeterMojo), () -> executeMojo(transformedMojoInstance));
 	}
 
 	@Test
 	void verifyExtensionClassHasNoMethods() throws Exception {
 		GreeterMojo2 greeterMojo = new GreeterMojo2();
-		Class<?> extensionClass = extensionClassOf(new MojoLoader(greeterMojo).transformedInstance());
+		Class<?> extensionClass = extensionClassOf(transformedInstance(greeterMojo));
 		assertThat(stream(extensionClass.getDeclaredMethods()).map(Method::getName)).isEmpty();
 	}
 
-
 	@Test
-	void verifyExtensionClassFieldsHaveNoMavenAnnotations() throws Exception {
+	void verifyMojoClassAndExtensionsClassFieldsHaveNoMavenAnnotations() throws Exception {
 		GreeterMojo2 greeterMojo = new GreeterMojo2();
-		Class<?> extensionClass = extensionClassOf(new MojoLoader(greeterMojo).transformedInstance());
-		assertThat(stream(extensionClass.getDeclaredFields()).map(f -> stream(f.getAnnotations())).flatMap(identity()))
-				.isEmpty();
+		Object transformedInstance = transformedInstance(greeterMojo);
+		assertThat(annotationsOf(transformedInstance)).isEmpty();
+		assertThat(fieldAnnotationsOf(extensionClassOf(transformedInstance))).isEmpty();
+	}
+
+	private static Stream<Annotation> annotationsOf(Object o) {
+		return stream(o.getClass().getAnnotations());
+	}
+
+	private static Stream<Annotation> fieldAnnotationsOf(Class<?> clazz) {
+		return stream(clazz.getDeclaredFields()).map(f -> stream(f.getAnnotations())).flatMap(identity());
+	}
+
+	private static Object transformedInstance(Mojo mojo) throws Exception, IOException {
+		return new MojoLoader(mojo).transformedInstance();
 	}
 
 	private Class<?> extensionClassOf(Object transformedMojoInstance) {

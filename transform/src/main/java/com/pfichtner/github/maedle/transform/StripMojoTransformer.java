@@ -2,13 +2,14 @@ package com.pfichtner.github.maedle.transform;
 
 import static com.pfichtner.github.maedle.transform.Constants.MAVEN_MOJO_EXECUTION_EXCEPTION;
 import static com.pfichtner.github.maedle.transform.Constants.MAVEN_MOJO_FAILURE_EXCEPTION;
+import static com.pfichtner.github.maedle.transform.Constants.MOJO_ANNOTATION;
 import static com.pfichtner.github.maedle.transform.Constants.isMavenException;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.JAVA_LANG_OBJECT;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.findNode;
+import static com.pfichtner.github.maedle.transform.util.AsmUtil.isType;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.isAload;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.objectTypeToInternal;
 import static com.pfichtner.github.maedle.transform.util.CollectionUtil.nonNull;
-import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
 import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
@@ -26,7 +27,6 @@ import static org.objectweb.asm.tree.AbstractInsnNode.METHOD_INSN;
 
 import java.util.List;
 
-import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.ClassRemapper;
@@ -90,8 +90,8 @@ public class StripMojoTransformer extends ClassNode {
 
 	@Override
 	public void accept(ClassVisitor classVisitor) {
-		nonNull(invisibleAnnotations).stream().filter(n -> Constants.MOJO_ANNOTATION.equals(Type.getType(n.desc)))
-				.findFirst().map(AsmUtil::toMap).orElse(emptyMap());
+		nonNull(invisibleAnnotations).removeIf(isType(MOJO_ANNOTATION));
+		nonNull(visibleAnnotations).removeIf(isType(MOJO_ANNOTATION));
 		superName = Type.getType(Object.class).getInternalName();
 		fields.removeAll(mojoData.getMojoParameterFields());
 		fields.add(new FieldNode(ACC_PRIVATE, FIELD_NAME_FOR_EXTENSION_INSTANCE,
@@ -104,12 +104,6 @@ public class StripMojoTransformer extends ClassNode {
 		methods.forEach(this::replaceFieldAccess);
 		methods.forEach(m -> m.exceptions = removeMavenExceptions(m.exceptions));
 		super.accept(remap(classVisitor));
-	}
-
-	@Override
-	public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-		Constants.MOJO_ANNOTATION.equals(Type.getType(descriptor));
-		return super.visitAnnotation(descriptor, visible);
 	}
 
 	@Override

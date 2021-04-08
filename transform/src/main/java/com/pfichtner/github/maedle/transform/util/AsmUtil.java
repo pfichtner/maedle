@@ -83,4 +83,8 @@ public final class AsmUtil {
 		return acc;
 	}
 
+	public static Predicate<? super AnnotationNode> isType(Type type) {
+		return n -> type.equals(Type.getType(n.desc));
+	}
+
 }
