@@ -1,6 +1,7 @@
 package com.github.pfichtner.maedle.mojo;
 
 import static com.pfichtner.github.maedle.transform.ResourceAddables.writeToDirectory;
+import static com.pfichtner.github.maedle.transform.util.CollectionUtil.nonNull;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.copyTree;
 import static java.nio.file.Files.walkFileTree;
 import static org.apache.maven.plugins.annotations.LifecyclePhase.PROCESS_CLASSES;
@@ -86,7 +87,7 @@ public class MaedleMojo extends AbstractMojo {
 	}
 
 	public Function<Type, PluginInfo> pluginInfoProvider() {
-		return new PluginInfoProvider(mappings).pluginFunction();
+		return new PluginInfoProvider(nonNull(mappings)).pluginFunction();
 	}
 
 	private Resource resource() {
