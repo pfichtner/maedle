@@ -53,11 +53,15 @@ public class TransformMojoVisitor extends SimpleFileVisitor<Path> {
 			if (parameters.getMojoData().isMojo()) {
 				Type originalMojoType = parameters.getMojoClass();
 				transformTo(resourceAddable, parameters.withMojoClass(append(originalMojoType, "Rewritten")),
-						append(originalMojoType, "GradlePlugin"), infoProvider.apply(originalMojoType));
+						append(originalMojoType, "GradlePlugin"), getPluginInfo(originalMojoType));
 			}
 		}
 
 		return CONTINUE;
+	}
+
+	private PluginInfo getPluginInfo(Type originalMojoType) {
+		return infoProvider.apply(originalMojoType);
 	}
 
 	public static void transformTo(ResourceAddable addable, TransformationParameters parameters, Type pluginType,

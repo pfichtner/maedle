@@ -3,6 +3,7 @@ package com.github.pfichtner.maedle.transform;
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOut;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.constructor;
 import static com.pfichtner.github.maedle.transform.util.CollectionUtil.nonNull;
+import static java.lang.reflect.Modifier.isStatic;
 import static java.util.Arrays.stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -41,6 +42,13 @@ public class GreeterMojoTest2 {
 
 		Object transformedMojoInstance = transformedInstance(greeterMojo);
 		haveSameSysouts(() -> executeMojo(greeterMojo), () -> executeMojo(transformedMojoInstance));
+	}
+
+	@Test
+	void verifyMojoClassHasNoFields() throws Exception {
+		GreeterMojo2 greeterMojo = new GreeterMojo2();
+		assertThat(stream(transformedInstance(greeterMojo).getClass().getFields())
+				.filter(p -> !isStatic(p.getModifiers()))).isEmpty();
 	}
 
 	@Test

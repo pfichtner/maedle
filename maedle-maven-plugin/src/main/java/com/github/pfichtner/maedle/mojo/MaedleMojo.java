@@ -8,6 +8,8 @@ import static org.apache.maven.plugins.annotations.LifecyclePhase.PROCESS_CLASSE
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
+import java.util.List;
+import java.util.function.Function;
 
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
@@ -36,10 +38,13 @@ public class MaedleMojo extends AbstractMojo {
 	 * The directory where processed resources will be placed for packaging.
 	 */
 	@Parameter(defaultValue = "${project.build.directory}/maedle-transformed-classes")
-	private File outputDirectory;
+	public File outputDirectory;
 
 	@Parameter(defaultValue = "${project.build.outputDirectory}", required = true)
-	private File classesDirectory;
+	public File classesDirectory;
+
+	@Parameter(name = "mappings")
+	public List<PluginInfoProvider.Mapping> mappings;
 
 //	@Component
 //	private MavenProjectHelper projectHelper;
@@ -66,11 +71,10 @@ public class MaedleMojo extends AbstractMojo {
 	}
 
 	private void transform() throws MojoFailureException {
+		TransformMojoVisitor visitor = new TransformMojoVisitor(FileSystems.getDefault(),
+				combine(log(), writeToDirectory(outputDirectory)), pluginInfoProvider()).withCopy(false);
 		try {
-			walkFileTree(classesDirectory.toPath(),
-					new TransformMojoVisitor(FileSystems.getDefault(),
-							combine(log(), writeToDirectory(outputDirectory)), MaedleMojo::createPluginInfo)
-									.withCopy(false));
+			walkFileTree(classesDirectory.toPath(), visitor);
 			walkFileTree(outputDirectory.toPath(), copyTree(outputDirectory, classesDirectory));
 		} catch (IOException e) {
 			throw new MojoFailureException("error reading " + classesDirectory, e);
@@ -79,6 +83,10 @@ public class MaedleMojo extends AbstractMojo {
 //		Resource resource = resource();
 //		getLog().info("Adding resource " + resource);
 //		project.addResource(resource);
+	}
+
+	public Function<Type, PluginInfo> pluginInfoProvider() {
+		return new PluginInfoProvider(mappings).pluginFunction();
 	}
 
 	private Resource resource() {
@@ -96,12 +104,6 @@ public class MaedleMojo extends AbstractMojo {
 			addable1.add(content, path);
 			addable2.add(content, path);
 		};
-	}
-
-	private static PluginInfo createPluginInfo(Type type) {
-		String className = type.getClassName();
-		int lastSlashAt = className.lastIndexOf('/');
-		return new PluginInfo(lastSlashAt >= 0 ? className.substring(0, lastSlashAt) : className, "extname");
 	}
 
 	public MavenProject getProject() {

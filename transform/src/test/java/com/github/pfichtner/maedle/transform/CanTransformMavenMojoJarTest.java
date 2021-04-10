@@ -5,16 +5,14 @@ import static com.github.pfichtner.maedle.transform.PluginUtil.createProjectSett
 import static com.pfichtner.github.maedle.transform.ResourceAddables.writeToDirectory;
 import static com.pfichtner.github.maedle.transform.ResourceAddables.writeToJar;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
+import static com.pfichtner.github.maedle.transform.util.IoUtils.collectToMap;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.ensureDirectoryExists;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.writeFile;
-import static java.nio.file.FileVisitResult.CONTINUE;
-import static java.nio.file.Files.copy;
 import static java.nio.file.Files.walkFileTree;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -23,11 +21,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.FileSystems;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,21 +39,7 @@ import com.github.pfichtner.maedle.transform.util.jar.JarModifier;
 import com.github.pfichtner.maedle.transform.util.jar.PluginInfo;
 import com.pfichtner.github.maedle.transform.TransformMojoVisitor;
 
-class CanTransformMavenMojoJarTest {
-
-	private static final class CollectToMap extends SimpleFileVisitor<Path> {
-
-		private final Map<String, byte[]> content = new HashMap<>();
-
-		@Override
-		public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) throws IOException {
-			String key = path.toString();
-			if (content.put(key, read(path)) != null) {
-				throw new IllegalStateException("Duplicate entry for " + key);
-			}
-			return CONTINUE;
-		}
-	}
+public class CanTransformMavenMojoJarTest {
 
 	@Test
 	void canTransformMavenMojoJarToGradlePluginInDirectory(@TempDir File tmpDir) throws Exception {
@@ -90,9 +70,8 @@ class CanTransformMavenMojoJarTest {
 	}
 
 	private Map<String, byte[]> collectDirectory(File tmpDir) throws IOException {
-		CollectToMap visitor = new CollectToMap();
-		walkFileTree(tmpDir.toPath(), visitor);
-		Map<String, byte[]> content = visitor.content;
+		Map<String, byte[]> content = new HashMap<>();
+		walkFileTree(tmpDir.toPath(), collectToMap(content));
 		return content;
 	}
 
@@ -161,17 +140,11 @@ class CanTransformMavenMojoJarTest {
 	}
 
 	private static Map<String, byte[]> collectJarContents(File jar) throws IOException {
-		CollectToMap visitor = new CollectToMap();
+		Map<String, byte[]> content = new HashMap<>();
 		try (JarModifier jarReader = new JarModifier(jar, false)) {
-			jarReader.readJar(visitor);
+			jarReader.readJar(collectToMap(content));
 		}
-		return visitor.content;
-	}
-
-	private static byte[] read(Path file) throws IOException {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		copy(file, baos);
-		return baos.toByteArray();
+		return content;
 	}
 
 	private static Class<?> nonMojoClass() {

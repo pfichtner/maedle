@@ -19,6 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Map;
 
 public final class IoUtils {
 
@@ -94,6 +95,27 @@ public final class IoUtils {
 			Files.copy(file, toPath.resolve(fromPath.relativize(file)), copyOption);
 			return CONTINUE;
 		}
+	}
+
+	public static SimpleFileVisitor<Path> collectToMap(Map<String, byte[]> content) {
+		return new SimpleFileVisitor<Path>() {
+
+			@Override
+			public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) throws IOException {
+				String key = path.toString();
+				if (content.put(key, read(path)) != null) {
+					throw new IllegalStateException("Duplicate entry for " + key);
+				}
+				return CONTINUE;
+			}
+
+			private byte[] read(Path file) throws IOException {
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				Files.copy(file, baos);
+				return baos.toByteArray();
+			}
+		};
+
 	}
 
 }

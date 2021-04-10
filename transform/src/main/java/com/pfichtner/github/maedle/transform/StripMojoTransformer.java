@@ -26,6 +26,8 @@ import static org.objectweb.asm.tree.AbstractInsnNode.FIELD_INSN;
 import static org.objectweb.asm.tree.AbstractInsnNode.METHOD_INSN;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Predicate;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Type;
@@ -93,7 +95,7 @@ public class StripMojoTransformer extends ClassNode {
 		nonNull(invisibleAnnotations).removeIf(isType(MOJO_ANNOTATION));
 		nonNull(visibleAnnotations).removeIf(isType(MOJO_ANNOTATION));
 		superName = Type.getType(Object.class).getInternalName();
-		fields.removeAll(mojoData.getMojoParameterFields());
+		fields.removeIf(isIn(mojoData.getMojoParameterFields()));
 		fields.add(new FieldNode(ACC_PRIVATE, FIELD_NAME_FOR_EXTENSION_INSTANCE,
 				objectTypeToInternal(extensionClass).getDescriptor(), null, null));
 
@@ -104,6 +106,17 @@ public class StripMojoTransformer extends ClassNode {
 		methods.forEach(this::replaceFieldAccess);
 		methods.forEach(m -> m.exceptions = removeMavenExceptions(m.exceptions));
 		super.accept(remap(classVisitor));
+	}
+
+	private Predicate<FieldNode> isIn(List<FieldNode> fieldNodes) {
+		return f1 -> {
+			return fieldNodes.stream().anyMatch(f2 -> //
+			Objects.equals(f2.access, f1.access) && //
+			Objects.equals(f2.name, f1.name) && //
+			Objects.equals(f2.desc, f1.desc) && //
+			Objects.equals(f2.signature, f1.signature) //
+			);
+		};
 	}
 
 	@Override

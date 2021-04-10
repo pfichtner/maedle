@@ -7,8 +7,15 @@
 		<plugins>
 			<plugin>
 				<artifactId>maedle-maven-plugin</artifactId>
-				<configuration>
-				</configuration>
+                                <configuration>
+                                        <mappings>
+                                                <mapping>
+                                                        <id>com/github/pfichtner/maedle/mojo/TestMojo1</id>
+                                                        <pluginId>com.github.pfichtner.heapwatch.extension</pluginId>
+                                                        <extension>heapwatch</extension>
+                                                </mapping>
+                                        </mappings>
+                                </configuration>
 			</plugin>
 		</plugins>
 	</build>

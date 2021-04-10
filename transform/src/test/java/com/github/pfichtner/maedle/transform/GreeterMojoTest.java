@@ -5,6 +5,7 @@ import static com.pfichtner.github.maedle.transform.MojoClassAnalyser.mojoData;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.constructor;
 import static com.pfichtner.github.maedle.transform.util.CollectionUtil.nonNull;
+import static java.lang.reflect.Modifier.isStatic;
 import static java.util.Arrays.stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -30,6 +31,7 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 
 import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
+import com.github.pfichtner.greeter.mavenplugin.GreeterMojo2;
 import com.github.pfichtner.maedle.transform.loader.MojoLoader;
 import com.github.stefanbirkner.systemlambda.Statement;
 import com.pfichtner.github.maedle.transform.MojoClassAnalyser.MojoData;
@@ -98,6 +100,13 @@ public class GreeterMojoTest {
 		greeterMojo.greeter = "Stranger";
 		Object transformedMojoInstance = transformedInstance(greeterMojo);
 		haveSameSysouts(() -> executeMojo(greeterMojo), () -> executeMojo(transformedMojoInstance));
+	}
+
+	@Test
+	void verifyMojoClassHasNoFields() throws Exception {
+		GreeterMojo2 greeterMojo = new GreeterMojo2();
+		assertThat(stream(transformedInstance(greeterMojo).getClass().getFields())
+				.filter(p -> !isStatic(p.getModifiers()))).isEmpty();
 	}
 
 	@Test
