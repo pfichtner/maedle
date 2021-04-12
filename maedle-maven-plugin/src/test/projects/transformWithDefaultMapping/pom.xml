@@ -15,13 +15,6 @@
 				<artifactId>maedle-maven-plugin</artifactId>
 				<version>0.0.1-SNAPSHOT</version>
                                 <configuration>
-                                        <mappings>
-                                                <mapping>
-                                                        <id>com/github/pfichtner/maedle/mojo/TestMojo1</id>
-                                                        <pluginId>my.example.gradle.extension</pluginId>
-                                                        <extension>heapwatch</extension>
-                                                </mapping>
-                                        </mappings>
                                 </configuration>
 				<executions>
 					<execution>

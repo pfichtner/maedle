@@ -17,15 +17,15 @@ public final class ClassUtils {
 	}
 
 	public static InputStream asStream(Class<?> clazz) throws IOException {
-		return clazz.getClassLoader().getResourceAsStream(pathToClass(clazz));
+		return clazz.getClassLoader().getResourceAsStream(classToPath(clazz));
 	}
 
 	public static File asFile(Class<?> clazz) throws IOException, URISyntaxException {
-		URL resource = clazz.getClassLoader().getResource(pathToClass(clazz));
+		URL resource = clazz.getClassLoader().getResource(classToPath(clazz));
 		return resource == null ? null : new File(resource.toURI());
 	}
 
-	private static String pathToClass(Class<?> clazz) {
+	public static String classToPath(Class<?> clazz) {
 		return clazz.getName().replace('.', '/') + ".class";
 	}
 

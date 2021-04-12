@@ -6,8 +6,8 @@ import static com.pfichtner.github.maedle.transform.ResourceAddables.writeToDire
 import static com.pfichtner.github.maedle.transform.ResourceAddables.writeToJar;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.collectToMap;
+import static com.pfichtner.github.maedle.transform.util.IoUtils.directoryContent;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.ensureDirectoryExists;
-import static com.pfichtner.github.maedle.transform.util.IoUtils.writeFile;
 import static java.nio.file.Files.walkFileTree;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toMap;
@@ -38,6 +38,7 @@ import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
 import com.github.pfichtner.maedle.transform.util.jar.JarModifier;
 import com.github.pfichtner.maedle.transform.util.jar.PluginInfo;
 import com.pfichtner.github.maedle.transform.TransformMojoVisitor;
+import com.pfichtner.github.maedle.transform.util.IoUtils;
 
 public class CanTransformMavenMojoJarTest {
 
@@ -47,7 +48,7 @@ public class CanTransformMavenMojoJarTest {
 		addClass(tmpDir, nonMojoClass());
 		addClass(tmpDir, mojo);
 
-		Set<String> filenamesBeforeTransform = stripBaseDir(collectDirectory(tmpDir), tmpDir).keySet();
+		Set<String> filenamesBeforeTransform = stripBaseDir(directoryContent(tmpDir), tmpDir).keySet();
 
 		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.maedle.some.target.packagename", "greeting");
 		walkFileTree(tmpDir.toPath(),
@@ -55,24 +56,15 @@ public class CanTransformMavenMojoJarTest {
 						.withCopy(false));
 
 		List<String> filenamesAdded = expectedFilenamesAdded(pluginInfo, mojo);
-		assertThat(stripBaseDir(collectDirectory(tmpDir), tmpDir)).hasSize(filenamesBeforeTransform.size() + 4) //
+		assertThat(stripBaseDir(directoryContent(tmpDir), tmpDir)).hasSize(filenamesBeforeTransform.size() + 4) //
 				.containsKeys(filenamesBeforeTransform.toArray(new String[filenamesBeforeTransform.size()])) //
 				.containsKeys(filenamesAdded.toArray(new String[filenamesAdded.size()])) //
 		;
 	}
 
 	private Map<String, byte[]> stripBaseDir(Map<String, byte[]> map, File baseDir) {
-		return map.entrySet().stream().collect(toMap(stripBase(baseDir), Entry::getValue));
-	}
-
-	private Function<Entry<String, byte[]>, String> stripBase(File baseDir) {
-		return e -> e.getKey().substring(baseDir.toString().length());
-	}
-
-	private Map<String, byte[]> collectDirectory(File tmpDir) throws IOException {
-		Map<String, byte[]> content = new HashMap<>();
-		walkFileTree(tmpDir.toPath(), collectToMap(content));
-		return content;
+		return map.entrySet().stream()
+				.collect(toMap(e -> "/" + IoUtils.stripBaseDir(baseDir, e.getKey()), Entry::getValue));
 	}
 
 	@Test
@@ -156,11 +148,8 @@ public class CanTransformMavenMojoJarTest {
 		jarWriter.add(asStream(clazz), clazz.getName().replace('.', '/') + ".class");
 	}
 
-	private static void addClass(File baseDir, Class<?> clazz)
-			throws IOException, FileNotFoundException, URISyntaxException {
-		File target = new File(baseDir, clazz.getName().replace('.', '/') + ".class");
-		ensureDirectoryExists(target.getParentFile());
-		writeFile(target, asStream(clazz));
+	private static void addClass(File baseDir, Class<?> clazz) throws IOException {
+		IoUtils.addClass(ensureDirectoryExists(baseDir), clazz);
 	}
 
 	private void transform(File jar, File outJar, Function<Type, PluginInfo> infoProvider) throws IOException {

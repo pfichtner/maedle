@@ -11,7 +11,7 @@ public class GreeterMojo3 extends AbstractMojo {
 	public static final String GOAL = "greet3";
 
 	public void execute() throws MojoExecutionException, MojoFailureException {
-		getLog().warn("Warn log statement");
+		getLog().warn("Log warn written by " + GreeterMojo3.class.getSimpleName());
 	}
 
 }

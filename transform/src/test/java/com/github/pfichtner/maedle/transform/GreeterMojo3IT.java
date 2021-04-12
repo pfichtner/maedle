@@ -24,7 +24,7 @@ public class GreeterMojo3IT {
 		File pluginJar = transformMojoAndWriteJar(GreeterMojo3.class, testProjectDir, pluginInfo);
 		try (GradleTestKit testKit = new GradleTestKit(testProjectDir.getAbsolutePath())) {
 			String stdOut = testKit.executeTask(pluginJar, GreeterMojo3.GOAL);
-			assertThat(stdOut).contains("Warn log statement");
+			assertThat(stdOut).contains("Log warn written by " + GreeterMojo3.class.getSimpleName());
 		}
 	}
 

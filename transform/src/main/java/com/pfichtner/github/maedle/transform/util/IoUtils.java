@@ -1,6 +1,9 @@
 package com.pfichtner.github.maedle.transform.util;
 
+import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
+import static com.pfichtner.github.maedle.transform.util.ClassUtils.classToPath;
 import static java.nio.file.FileVisitResult.CONTINUE;
+import static java.nio.file.Files.walkFileTree;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 import java.io.BufferedInputStream;
@@ -19,6 +22,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.HashMap;
 import java.util.Map;
 
 public final class IoUtils {
@@ -63,6 +67,22 @@ public final class IoUtils {
 			throw new IllegalStateException("Cannot create " + directory);
 		}
 		return directory;
+	}
+
+	public static void addClass(File baseDir, Class<?> clazz) throws IOException {
+		File file = new File(baseDir, classToPath(clazz));
+		ensureDirectoryExists(file.getParentFile());
+		writeFile(file, asStream(clazz));
+	}
+
+	public static Map<String, byte[]> directoryContent(File directory) throws IOException {
+		Map<String, byte[]> content = new HashMap<>();
+		walkFileTree(directory.toPath(), collectToMap(content));
+		return content;
+	}
+
+	public static String stripBaseDir(File baseDir, String filename) {
+		return filename.substring(baseDir.toString().length() + 1);
 	}
 
 	public static SimpleFileVisitor<Path> copyTree(File srcPath, File destPath) {
