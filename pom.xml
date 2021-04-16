@@ -75,7 +75,7 @@
 		<snapshotRepository>
 			<id>github</id>
 			<name>GitHub Packages</name>
-			<url>https://maven.pkg.github.com/pfichtner/heapwatch</url>
+			<url>https://maven.pkg.github.com/pfichtner/maedle</url>
 		</snapshotRepository>
 	</distributionManagement>
 
