@@ -54,14 +54,14 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.pfichtner.github.maedle</groupId>
+			<groupId>com.github.pfichtner.maedle</groupId>
 			<artifactId>transform</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
 		<!-- this is a transitive dependency of "transform" but is not included 
 			:-/ -->
 		<dependency>
-			<groupId>com.pfichtner.github.maedle</groupId>
+			<groupId>com.github.pfichtner.maedle</groupId>
 			<artifactId>gradle-plugin-mixin</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>

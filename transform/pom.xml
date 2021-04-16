@@ -10,7 +10,7 @@
 	</parent>
 
 	<artifactId>transform</artifactId>
-	<packaging>jar</packaging>
+        <packaging>jar</packaging>
 
 	<properties>
 		<maven.compiler.source>1.8</maven.compiler.source>
@@ -54,7 +54,7 @@
 
 		<!-- for mixins -->
 		<dependency>
-			<groupId>com.pfichtner.github.maedle</groupId>
+			<groupId>com.github.pfichtner.maedle</groupId>
 			<artifactId>gradle-plugin-mixin</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
@@ -98,7 +98,7 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.pfichtner.github.maedle</groupId>
+			<groupId>com.github.pfichtner.maedle</groupId>
 			<artifactId>maven-test-project</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 			<scope>test</scope>
