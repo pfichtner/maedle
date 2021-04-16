@@ -31,11 +31,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-maven-      
     - name: Build
-      run: ./mvnw -B integration-test --file pom.xml
-    - name: Deploy
-      run: ./mvnw -B deploy --file pom.xml
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: ./mvnw -B package --file pom.xml
 # TO delete old versions
 # https://github.com/actions/delete-package-versions
     - name: Upload to Codecov
