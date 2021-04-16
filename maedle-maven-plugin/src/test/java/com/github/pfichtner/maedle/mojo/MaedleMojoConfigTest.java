@@ -8,7 +8,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
 import java.util.stream.Stream;
 
 import org.apache.maven.plugin.MojoExecutionException;
@@ -65,6 +64,7 @@ public class MaedleMojoConfigTest {
 	public void doNotTransformIfNotConfigured() throws Exception {
 		loadMojo("transformOnlyIfConfigured");
 		assertThat(sut.transformOnlyIfConfigured).isTrue();
+		assertThat(sut.mappings).isNullOrEmpty();
 		addToClasses(TestMojo1.class);
 		execute();
 		assertThat(relativeFileNames()).isEmpty();
