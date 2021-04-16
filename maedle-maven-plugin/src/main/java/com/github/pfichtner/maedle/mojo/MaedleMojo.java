@@ -56,8 +56,7 @@ public class MaedleMojo extends AbstractMojo {
 
 	public static final String GOAL = "transform";
 
-//	@Parameter(defaultValue = "${project}", required = true, readonly = true)
-	@Component
+	@Parameter( defaultValue = "${project}", readonly = true )
 	private MavenProject project;
 
 	/**
