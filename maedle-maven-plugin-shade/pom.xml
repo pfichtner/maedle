@@ -28,6 +28,7 @@
 				<artifactId>maven-shade-plugin</artifactId>
 				<version>3.2.4</version>
 				<configuration>
+					<finalName>maedle-maven-plugin</finalName>
 					<minimizeJar>true</minimizeJar>
 					<filters>
 						<filter>
