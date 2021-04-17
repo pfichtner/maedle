@@ -173,6 +173,7 @@
 					<filters>
 						<filter>
 							<artifact>com.github.pfichtner.maedle:maedle-maven-plugin</artifact>
+                                                        <artifact>com.github.pfichtner.maedle:gradle-plugin-mixin</artifact>
 							<includes>
 								<include>**</include>
 							</includes>
