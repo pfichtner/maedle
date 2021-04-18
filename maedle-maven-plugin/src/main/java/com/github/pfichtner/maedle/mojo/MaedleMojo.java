@@ -19,7 +19,6 @@ import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
@@ -31,7 +30,7 @@ import com.pfichtner.github.maedle.transform.TransformMojoVisitor;
 
 @Mojo(name = MaedleMojo.GOAL, defaultPhase = PROCESS_CLASSES)
 public class MaedleMojo extends AbstractMojo {
-	
+
 	public static class Mapping {
 
 		public String id;
@@ -56,7 +55,7 @@ public class MaedleMojo extends AbstractMojo {
 
 	public static final String GOAL = "transform";
 
-	@Parameter( defaultValue = "${project}", readonly = true )
+	@Parameter(defaultValue = "${project}", readonly = true)
 	private MavenProject project;
 
 	/**
@@ -102,7 +101,7 @@ public class MaedleMojo extends AbstractMojo {
 		}
 	}
 
-	private void transform() throws MojoFailureException {
+	private void transform() throws MojoFailureException, MojoExecutionException {
 		TransformMojoVisitor visitor = new TransformMojoVisitor(FileSystems.getDefault(),
 				combine(log(), writeToDirectory(outputDirectory)), pluginInfoProvider()).withCopy(false);
 		try {
@@ -117,14 +116,30 @@ public class MaedleMojo extends AbstractMojo {
 //		project.addResource(resource);
 	}
 
-	private Function<Type, PluginInfo> pluginInfoProvider() {
+	private Function<Type, PluginInfo> pluginInfoProvider() throws MojoExecutionException {
 		Map<Type, PluginInfo> map = getMappings();
 		return transformOnlyIfConfigured ? map::get : functionForMapWithProvider(map, MaedleMojo::defaultPluginInfo);
 	}
 
-	private Map<Type, PluginInfo> getMappings() {
-		return nonNull(mappings).stream()
-				.collect(toMap(m -> Type.getObjectType(m.id), m -> new PluginInfo(m.pluginId, m.extension)));
+	private Map<Type, PluginInfo> getMappings() throws MojoExecutionException {
+		return verifyMappings(nonNull(mappings).stream()
+				.collect(toMap(m -> Type.getObjectType(m.id), m -> new PluginInfo(m.pluginId, m.extension))));
+	}
+
+	private Map<Type, PluginInfo> verifyMappings(Map<Type, PluginInfo> map) throws MojoExecutionException {
+		for (Type type : map.keySet()) {
+			verifyClassExists(type);
+		}
+		return map;
+	}
+
+	private void verifyClassExists(Type type) throws MojoExecutionException {
+		String clazz = type.getClassName();
+		try {
+			Class.forName(clazz);
+		} catch (ClassNotFoundException e) {
+			throw new MojoExecutionException("Class " + type + " not found");
+		}
 	}
 
 	private static PluginInfo defaultPluginInfo(Type type) {
