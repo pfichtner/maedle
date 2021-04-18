@@ -6,6 +6,7 @@ import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.toBytes;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.writeFile;
 import static java.io.File.createTempFile;
+import static java.lang.String.format;
 import static java.util.stream.Collectors.joining;
 
 import java.io.File;
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.maven.plugin.Mojo;
 
@@ -57,9 +59,35 @@ public final class PluginUtil {
 		List<String> lines = new ArrayList<>();
 		lines.add("plugins { id '" + pluginInfo.pluginId + "' }");
 		lines.add(pluginInfo.extensionName + " {");
-		entries.forEach((k, v) -> lines.add("	" + k + " = \"" + v + "\""));
+		lines.add(toText(entries));
 		lines.add("}");
 		return lines;
+	}
+
+	private static String toText(Map<Object, Object> map) {
+		StringBuilder sb = new StringBuilder();
+		for (Entry<Object, Object> entry : map.entrySet()) {
+			sb.append(value(entry) + "\n");
+		}
+		return sb.toString();
+	}
+
+	@SuppressWarnings("unchecked")
+	private static String value(Entry<Object, Object> entry) {
+		Object value = entry.getValue();
+		if (value instanceof Map) {
+			Map<Object, Object> map = (Map<Object, Object>) value;
+			return entry.getKey() + " = [" + //
+					map.entrySet().stream().map(PluginUtil::formatEntry).collect(joining(", ")) //
+					+ "]";
+//			return entry.getKey() + " {\n" + toText(map) + "}";
+		}
+		return entry.getKey() + " = \"" + value + "\"";
+	}
+
+	private static String formatEntry(Entry<Object, Object> e) {
+		Object value = e.getValue();
+		return format(value instanceof Number ? "%s: %s" : "%s: '%s'", e.getKey(), value);
 	}
 
 }
