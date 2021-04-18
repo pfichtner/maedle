@@ -89,25 +89,7 @@ public class StripMojoTransformer extends ClassNode {
 		this.remapper = remapper == null ? defaultRemapper : remapper;
 		return this;
 	}
-
-	@Override
-	public void accept(ClassVisitor classVisitor) {
-		nonNull(invisibleAnnotations).removeIf(isType(MOJO_ANNOTATION));
-		nonNull(visibleAnnotations).removeIf(isType(MOJO_ANNOTATION));
-		superName = Type.getType(Object.class).getInternalName();
-		fields.removeIf(isIn(mojoData.getMojoParameterFields()));
-		fields.add(new FieldNode(ACC_PRIVATE, FIELD_NAME_FOR_EXTENSION_INSTANCE,
-				objectTypeToInternal(extensionClass).getDescriptor(), null, null));
-
-		methods.removeIf(AsmUtil::isNoArgConstructor);
-		methods.add(extensionClassConstructor());
-
-		methods.forEach(this::mapMavenToGradleLogging);
-		methods.forEach(this::replaceFieldAccess);
-		methods.forEach(m -> m.exceptions = removeMavenExceptions(m.exceptions));
-		super.accept(remap(classVisitor));
-	}
-
+	
 	private Predicate<FieldNode> isIn(List<FieldNode> fieldNodes) {
 		return f1 -> {
 			return fieldNodes.stream().anyMatch(f2 -> //
@@ -121,7 +103,21 @@ public class StripMojoTransformer extends ClassNode {
 
 	@Override
 	public void visitEnd() {
-		accept(classVisitor);
+		nonNull(invisibleAnnotations).removeIf(isType(MOJO_ANNOTATION));
+		nonNull(visibleAnnotations).removeIf(isType(MOJO_ANNOTATION));
+		superName = Type.getType(Object.class).getInternalName();
+		fields.removeIf(isIn(mojoData.getMojoParameterFields()));
+		fields.add(new FieldNode(ACC_PRIVATE, FIELD_NAME_FOR_EXTENSION_INSTANCE,
+				objectTypeToInternal(extensionClass).getDescriptor(), null, null));
+
+		methods.removeIf(AsmUtil::isNoArgConstructor);
+		methods.add(extensionClassConstructor());
+
+		methods.forEach(this::mapMavenToGradleLogging);
+		methods.forEach(this::replaceFieldAccess);
+		methods.forEach(m -> m.exceptions = removeMavenExceptions(m.exceptions));
+
+		accept(remap(classVisitor));
 	}
 
 	private void replaceFieldAccess(MethodNode methodNode) {

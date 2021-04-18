@@ -6,8 +6,6 @@ import static com.github.pfichtner.maedle.transform.PluginUtil.transformMojoAndW
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -21,40 +19,19 @@ public class TestMojoMapIT {
 	void canTransformHeapWatchMojo(@TempDir File testProjectDir) throws Exception {
 		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.maedle.mojotogradle", "greeting");
 		createProjectSettingsFile(testProjectDir);
-		createProjectBuildFile(testProjectDir, pluginInfo, configuration());
+		createProjectBuildFile(testProjectDir, pluginInfo, configuration2());
 		File pluginJar = transformMojoAndWriteJar(TestMojoMap.class, testProjectDir, pluginInfo);
 		try (GradleTestKit testKit = new GradleTestKit(testProjectDir.getAbsolutePath())) {
 			String stdOut = testKit.executeTask(pluginJar, TestMojoMap.GOAL);
 			assertThat(stdOut).contains("one * 42 = 42").contains("two * 42 = 84").contains("three * 42 = 126");
+			assertThat(stdOut).contains("prime");
 		}
 	}
 
-	private Map<Object, Object> configuration() {
-		Map<Object, Object> data = new HashMap<>();
-		data.put("data", level1());
-		return data;
+	private String configuration2() {
+		String c1 = "data  = [one: 1, two: 2, three: 3]";
+		String c2 = "data2 = [one: { number=1 isPrime=false }, two: { number=2 isPrime=true }, three: { number=3 isPrime=false }]";
+		return c1 + "\n" + c2;
 	}
-
-	private Map<Object, Object> level1() {
-		Map<Object, Object> map = new HashMap<>();
-		map.put("one", 1);
-		map.put("two", 2);
-		map.put("three", 3);
-		return map;
-	}
-
-//	private Map<Object, Object> level1() {
-//		Map<Object, Object> map = new HashMap<>();
-//		map.put("a", level2(1, "one"));
-//		map.put("b", level2(2, "two"));
-//		return map;
-//	}
-
-//	private Map<Object, Object> level2(int number, String text) {
-//		Map<Object, Object> map = new HashMap<>();
-//		map.put("number", number);
-//		map.put("text", text);
-//		return map;
-//	}
 
 }

@@ -10,7 +10,6 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.joining;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +36,7 @@ public final class PluginUtil {
 	}
 
 	public static File transformMojoAndWriteJar(Class<? extends Mojo> mojoClass, File baseDir, PluginInfo pluginInfo)
-			throws IOException, FileNotFoundException {
+			throws IOException {
 		File pluginJar = createTempFile("plugin-", ".jar", baseDir);
 		pluginJar.delete();
 		try (JarModifier jarWriter = new JarModifier(pluginJar, true)) {
@@ -48,18 +47,24 @@ public final class PluginUtil {
 		return pluginJar;
 	}
 
+	@Deprecated
 	public static File createProjectBuildFile(File testProjectDir, PluginInfo pluginInfo, Map<Object, Object> entries)
 			throws IOException {
+		return createProjectBuildFile(testProjectDir, pluginInfo, toText(entries));
+	}
+
+	public static File createProjectBuildFile(File testProjectDir, PluginInfo pluginInfo, String config)
+			throws IOException {
 		File buildFile = new File(testProjectDir, "build.gradle");
-		writeFile(buildFile, buildFileContent(pluginInfo, entries).stream().collect(joining("\n")));
+		writeFile(buildFile, buildFileContent(pluginInfo, config).stream().collect(joining("\n")));
 		return buildFile;
 	}
 
-	public static List<String> buildFileContent(PluginInfo pluginInfo, Map<Object, Object> entries) {
+	private static List<String> buildFileContent(PluginInfo pluginInfo, String config) {
 		List<String> lines = new ArrayList<>();
 		lines.add("plugins { id '" + pluginInfo.pluginId + "' }");
 		lines.add(pluginInfo.extensionName + " {");
-		lines.add(toText(entries));
+		lines.add(config);
 		lines.add("}");
 		return lines;
 	}
@@ -85,8 +90,12 @@ public final class PluginUtil {
 		return entry.getKey() + " = \"" + value + "\"";
 	}
 
+	@SuppressWarnings("unchecked")
 	private static String formatEntry(Entry<Object, Object> e) {
 		Object value = e.getValue();
+		if (value instanceof Map) {
+			return toText((Map<Object, Object>) value);
+		}
 		return format(value instanceof Number ? "%s: %s" : "%s: '%s'", e.getKey(), value);
 	}
 

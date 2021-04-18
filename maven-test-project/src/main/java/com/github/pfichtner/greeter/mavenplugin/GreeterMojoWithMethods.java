@@ -18,10 +18,12 @@ public class GreeterMojoWithMethods extends AbstractMojo {
 	private String message = "Message from Mojo2!";
 
 	public void setMessage(String message) {
+		// code gets rewritten so that it accesses the extension class
 		this.message = message;
 	}
 
 	public String getMessage() {
+		// code gets rewritten so that it accesses the extension class
 		return message;
 	}
 

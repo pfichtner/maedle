@@ -17,7 +17,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.FileSystems;
@@ -143,8 +142,7 @@ public class CanTransformMavenMojoJarTest {
 		return CanTransformMavenMojoJarTest.class;
 	}
 
-	private static void addClass(JarModifier jarWriter, Class<?> clazz)
-			throws IOException, FileNotFoundException, URISyntaxException {
+	private static void addClass(JarModifier jarWriter, Class<?> clazz) throws IOException, FileNotFoundException {
 		jarWriter.add(asStream(clazz), clazz.getName().replace('.', '/') + ".class");
 	}
 
