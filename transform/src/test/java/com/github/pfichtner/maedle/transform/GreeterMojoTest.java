@@ -31,7 +31,6 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 
 import com.github.pfichtner.greeter.mavenplugin.GreeterMojo;
-import com.github.pfichtner.greeter.mavenplugin.GreeterMojo2;
 import com.github.pfichtner.maedle.transform.loader.MojoLoader;
 import com.github.stefanbirkner.systemlambda.Statement;
 import com.pfichtner.github.maedle.transform.MojoClassAnalyser.MojoData;
@@ -104,7 +103,7 @@ public class GreeterMojoTest {
 
 	@Test
 	void verifyMojoClassHasNoFields() throws Exception {
-		GreeterMojo2 greeterMojo = new GreeterMojo2();
+		GreeterMojo greeterMojo = new GreeterMojo();
 		assertThat(stream(transformedInstance(greeterMojo).getClass().getFields())
 				.filter(p -> !isStatic(p.getModifiers()))).isEmpty();
 	}

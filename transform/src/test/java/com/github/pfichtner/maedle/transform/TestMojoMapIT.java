@@ -12,19 +12,19 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import com.github.pfichtner.greeter.mavenplugin.GreeterMojo4;
+import com.github.pfichtner.greeter.mavenplugin.TestMojoMap;
 import com.github.pfichtner.maedle.transform.util.jar.PluginInfo;
 
-public class GreeterMojo4IT {
+public class TestMojoMapIT {
 
 	@Test
 	void canTransformHeapWatchMojo(@TempDir File testProjectDir) throws Exception {
 		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.maedle.mojotogradle", "greeting");
 		createProjectSettingsFile(testProjectDir);
 		createProjectBuildFile(testProjectDir, pluginInfo, configuration());
-		File pluginJar = transformMojoAndWriteJar(GreeterMojo4.class, testProjectDir, pluginInfo);
+		File pluginJar = transformMojoAndWriteJar(TestMojoMap.class, testProjectDir, pluginInfo);
 		try (GradleTestKit testKit = new GradleTestKit(testProjectDir.getAbsolutePath())) {
-			String stdOut = testKit.executeTask(pluginJar, GreeterMojo4.GOAL);
+			String stdOut = testKit.executeTask(pluginJar, TestMojoMap.GOAL);
 			assertThat(stdOut).contains("one * 42 = 42").contains("two * 42 = 84").contains("three * 42 = 126");
 		}
 	}

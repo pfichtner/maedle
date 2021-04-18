@@ -11,20 +11,20 @@ import java.io.File;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import com.github.pfichtner.greeter.mavenplugin.GreeterMojo3;
+import com.github.pfichtner.greeter.mavenplugin.TestMojoLog;
 import com.github.pfichtner.maedle.transform.util.jar.PluginInfo;
 
-public class GreeterMojo3IT {
+public class TestMojoLogIT {
 
 	@Test
 	void canTransformHeapWatchMojo(@TempDir File testProjectDir) throws Exception {
 		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.maedle.mojotogradle", "greeting");
 		createProjectSettingsFile(testProjectDir);
 		createProjectBuildFile(testProjectDir, pluginInfo, emptyMap());
-		File pluginJar = transformMojoAndWriteJar(GreeterMojo3.class, testProjectDir, pluginInfo);
+		File pluginJar = transformMojoAndWriteJar(TestMojoLog.class, testProjectDir, pluginInfo);
 		try (GradleTestKit testKit = new GradleTestKit(testProjectDir.getAbsolutePath())) {
-			String stdOut = testKit.executeTask(pluginJar, GreeterMojo3.GOAL);
-			assertThat(stdOut).contains("Log warn written by " + GreeterMojo3.class.getSimpleName());
+			String stdOut = testKit.executeTask(pluginJar, TestMojoLog.GOAL);
+			assertThat(stdOut).contains("Log warn written by " + TestMojoLog.class.getSimpleName());
 		}
 	}
 

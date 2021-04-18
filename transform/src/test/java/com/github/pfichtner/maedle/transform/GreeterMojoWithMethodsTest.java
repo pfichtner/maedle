@@ -22,22 +22,22 @@ import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 
-import com.github.pfichtner.greeter.mavenplugin.GreeterMojo2;
+import com.github.pfichtner.greeter.mavenplugin.GreeterMojoWithMethods;
 import com.github.pfichtner.maedle.transform.loader.MojoLoader;
 import com.github.stefanbirkner.systemlambda.Statement;
 
-public class GreeterMojoTest2 {
+public class GreeterMojoWithMethodsTest {
 
 	@Test
 	void transformedMojoHasSameBehaviorLikeOriginalMojo() throws Exception {
-		GreeterMojo2 greeterMojo = new GreeterMojo2();
+		GreeterMojoWithMethods greeterMojo = new GreeterMojoWithMethods();
 		Object transformedMojoInstance = transformedInstance(greeterMojo);
 		haveSameSysouts(() -> executeMojo(greeterMojo), () -> executeMojo(transformedMojoInstance));
 	}
 
 	@Test
 	void fieldInitializersAreCopiedFromMojoToExtensionClass() throws Exception {
-		GreeterMojo2 greeterMojo = new GreeterMojo2();
+		GreeterMojoWithMethods greeterMojo = new GreeterMojoWithMethods();
 		greeterMojo.setMessage("Message from JUnit");
 
 		Object transformedMojoInstance = transformedInstance(greeterMojo);
@@ -46,21 +46,21 @@ public class GreeterMojoTest2 {
 
 	@Test
 	void verifyMojoClassHasNoFields() throws Exception {
-		GreeterMojo2 greeterMojo = new GreeterMojo2();
+		GreeterMojoWithMethods greeterMojo = new GreeterMojoWithMethods();
 		assertThat(stream(transformedInstance(greeterMojo).getClass().getFields())
 				.filter(p -> !isStatic(p.getModifiers()))).isEmpty();
 	}
 
 	@Test
 	void verifyExtensionClassHasNoMethods() throws Exception {
-		GreeterMojo2 greeterMojo = new GreeterMojo2();
+		GreeterMojoWithMethods greeterMojo = new GreeterMojoWithMethods();
 		Class<?> extensionClass = extensionClassOf(transformedInstance(greeterMojo));
 		assertThat(stream(extensionClass.getDeclaredMethods()).map(Method::getName)).isEmpty();
 	}
 
 	@Test
 	void verifyMojoClassAndExtensionsClassFieldsHaveNoMavenAnnotations() throws Exception {
-		GreeterMojo2 greeterMojo = new GreeterMojo2();
+		GreeterMojoWithMethods greeterMojo = new GreeterMojoWithMethods();
 		MojoLoader mojoLoader = new MojoLoader(greeterMojo);
 		ClassNode transformedMojoNode = mojoLoader.transformedMojoNode();
 		assertEmpty(nonNull(transformedMojoNode.visibleAnnotations));

@@ -11,10 +11,10 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
-@Mojo(name = GreeterMojo4.GOAL)
-public class GreeterMojo4 extends AbstractMojo {
+@Mojo(name = TestMojoMap.GOAL)
+public class TestMojoMap extends AbstractMojo {
 
-	public static final String GOAL = "greet4";
+	public static final String GOAL = "testMojoMap";
 
 	// TODO howto to configure nested object in gradle build file?
 //	public static class MyObject {

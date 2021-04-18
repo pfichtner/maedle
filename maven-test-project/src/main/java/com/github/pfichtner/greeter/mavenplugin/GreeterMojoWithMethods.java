@@ -6,10 +6,10 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
-@Mojo(name = GreeterMojo2.GOAL)
-public class GreeterMojo2 extends AbstractMojo {
+@Mojo(name = GreeterMojoWithMethods.GOAL)
+public class GreeterMojoWithMethods extends AbstractMojo {
 
-	public static final String GOAL = "greet2";
+	public static final String GOAL = "greeterMojoWithMethods";
 
 	@Parameter(name = "greeter")
 	public String greeter = "pfichtner";

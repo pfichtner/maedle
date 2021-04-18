@@ -5,13 +5,13 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 
-@Mojo(name = GreeterMojo3.GOAL)
-public class GreeterMojo3 extends AbstractMojo {
+@Mojo(name = TestMojoLog.GOAL)
+public class TestMojoLog extends AbstractMojo {
 
-	public static final String GOAL = "greet3";
+	public static final String GOAL = "testMojoLog";
 
 	public void execute() throws MojoExecutionException, MojoFailureException {
-		getLog().warn("Log warn written by " + GreeterMojo3.class.getSimpleName());
+		getLog().warn("Log warn written by " + TestMojoLog.class.getSimpleName());
 	}
 
 }
