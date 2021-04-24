@@ -20,7 +20,7 @@ public class TestMojoLogIT {
 		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.maedle.mojotogradle", "greeting");
 		createProjectSettingsFile(testProjectDir);
 		createProjectBuildFile(testProjectDir, pluginInfo, "");
-		File pluginJar = transformMojoAndWriteJar(TestMojoLog.class, testProjectDir, pluginInfo);
+		File pluginJar = transformMojoAndWriteJar(testProjectDir, pluginInfo, TestMojoLog.class);
 		try (GradleTestKit testKit = new GradleTestKit(testProjectDir.getAbsolutePath())) {
 			String stdOut = testKit.executeTask(pluginJar, TestMojoLog.GOAL);
 			assertThat(stdOut).contains("Log warn written by " + TestMojoLog.class.getSimpleName());

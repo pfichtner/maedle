@@ -87,4 +87,28 @@ public final class AsmUtil {
 		return n -> type.equals(Type.getType(n.desc));
 	}
 
+	public static String[] trySplitOuterInnerClass(String internalName) {
+		int idx = internalName.lastIndexOf('$');
+		if (idx < 0) {
+			return null;
+		}
+		String outer = internalName.substring(0, idx);
+		String inner = internalName.substring(idx + 1);
+		return new String[] { outer, inner };
+	}
+
+	public static String innerClass(String outer, String inner) {
+		return outer + "$" + inner;
+	}
+
+	public static String mapType(Type oldType, Type newType, String typeToMap) {
+		String[] split = trySplitOuterInnerClass(typeToMap);
+		if (split != null && Type.getObjectType(split[0]).equals(oldType)) {
+			return innerClass(newType.getInternalName(), split[1]);
+		} else if (Type.getObjectType(typeToMap).equals(oldType)) {
+			return newType.getInternalName();
+		}
+		return typeToMap;
+	}
+
 }

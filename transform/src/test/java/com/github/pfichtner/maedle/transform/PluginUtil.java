@@ -1,9 +1,8 @@
 package com.github.pfichtner.maedle.transform;
 
-import static com.pfichtner.github.maedle.transform.TransformationParameters.fromMojo;
-import static com.pfichtner.github.maedle.transform.util.AsmUtil.append;
+import static com.pfichtner.github.maedle.transform.ResourceAddables.writeToJar;
 import static com.pfichtner.github.maedle.transform.util.ClassUtils.asStream;
-import static com.pfichtner.github.maedle.transform.util.IoUtils.toBytes;
+import static com.pfichtner.github.maedle.transform.util.ClassUtils.classToPath;
 import static com.pfichtner.github.maedle.transform.util.IoUtils.writeFile;
 import static java.io.File.createTempFile;
 import static java.lang.String.format;
@@ -16,12 +15,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.maven.plugin.Mojo;
-
 import com.github.pfichtner.maedle.transform.util.jar.JarModifier;
 import com.github.pfichtner.maedle.transform.util.jar.PluginInfo;
 import com.pfichtner.github.maedle.transform.TransformMojoVisitor;
-import com.pfichtner.github.maedle.transform.TransformationParameters;
 
 public final class PluginUtil {
 
@@ -35,16 +31,23 @@ public final class PluginUtil {
 		return settingsFile;
 	}
 
-	public static File transformMojoAndWriteJar(Class<? extends Mojo> mojoClass, File baseDir, PluginInfo pluginInfo)
+	public static File transformMojoAndWriteJar(File baseDir, PluginInfo pluginInfo, Class<?>... classes)
 			throws IOException {
 		File pluginJar = createTempFile("plugin-", ".jar", baseDir);
 		pluginJar.delete();
-		try (JarModifier jarWriter = new JarModifier(pluginJar, true)) {
-			TransformationParameters parameters = fromMojo(toBytes(asStream(mojoClass)));
-			TransformMojoVisitor.transformTo((content, path) -> jarWriter.add(content, path), parameters,
-					append(parameters.getMojoClass(), "GradlePlugin"), pluginInfo);
+		fillJar(pluginJar, classes);
+		try (JarModifier modifier = new JarModifier(pluginJar, true)) {
+			modifier.readJar(new TransformMojoVisitor(modifier.getFileSystem(), writeToJar(modifier), ign -> pluginInfo));
 		}
 		return pluginJar;
+	}
+
+	private static void fillJar(File pluginJar, Class<?>... classes) throws IOException {
+		try (JarModifier modifier = new JarModifier(pluginJar, true)) {
+			for (Class<?> clazz : classes) {
+				modifier.add(asStream(clazz), classToPath(clazz));
+			}
+		}
 	}
 
 	@Deprecated

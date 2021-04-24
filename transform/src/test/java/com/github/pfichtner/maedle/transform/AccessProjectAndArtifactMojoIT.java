@@ -21,7 +21,7 @@ public class AccessProjectAndArtifactMojoIT {
 		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.maedle.mojotogradle", "greeting");
 		createProjectSettingsFile(testProjectDir);
 		createProjectBuildFile(testProjectDir, pluginInfo, emptyMap());
-		File pluginJar = transformMojoAndWriteJar(AccessProjectAndArtifactMojo.class, testProjectDir, pluginInfo);
+		File pluginJar = transformMojoAndWriteJar(testProjectDir, pluginInfo, AccessProjectAndArtifactMojo.class);
 		try (GradleTestKit testKit = new GradleTestKit(testProjectDir.getAbsolutePath())) {
 			String stdOut = testKit.executeTask(pluginJar, AccessProjectAndArtifactMojo.GOAL);
 			assertThat(stdOut).contains("Warn log statement");

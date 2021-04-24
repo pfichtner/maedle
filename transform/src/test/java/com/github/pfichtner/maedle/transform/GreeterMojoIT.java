@@ -47,7 +47,7 @@ public class GreeterMojoIT {
 		String taskName = GreeterMojo.GOAL;
 		createProjectBuildFile(testProjectDir, pluginInfo,
 				new GreeterMessageBuilder().withGreeter(greeter).withMessage(message).build());
-		File pluginJar = transformMojoAndWriteJar(GreeterMojo.class, testProjectDir, pluginInfo);
+		File pluginJar = transformMojoAndWriteJar(testProjectDir, pluginInfo, GreeterMojo.class);
 		try (GradleTestKit testKit = new GradleTestKit(testProjectDir.getAbsolutePath())) {
 			String stdOut = testKit.executeTask(pluginJar, taskName);
 			assertThat(stdOut) //

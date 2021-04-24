@@ -8,11 +8,13 @@ import static org.objectweb.asm.Opcodes.ASM9;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.InnerClassNode;
 
 import com.pfichtner.github.maedle.transform.util.AsmUtil;
 
@@ -21,6 +23,7 @@ public class MojoClassAnalyser extends ClassNode {
 	public static class MojoData {
 
 		private Type mojoType;
+		private List<InnerClassNode> innerClasses;
 		private Map<String, Object> mojoAnnotationValues = emptyMap();
 		private List<FieldNode> mojoParameterFields = emptyList();
 
@@ -40,6 +43,14 @@ public class MojoClassAnalyser extends ClassNode {
 			return mojoParameterFields;
 		}
 
+		public Stream<InnerClassNode> getInnerClasses() {
+			return innerClasses.stream().filter(this::ownerIsMojo);
+		}
+
+		private boolean ownerIsMojo(InnerClassNode innerClassNode) {
+			return Type.getObjectType(innerClassNode.outerName).equals(getMojoType());
+		}
+
 	}
 
 	private MojoData mojoData;
@@ -53,6 +64,7 @@ public class MojoClassAnalyser extends ClassNode {
 		super.visitEnd();
 		mojoData = new MojoData();
 		mojoData.mojoType = Type.getObjectType(name);
+		mojoData.innerClasses = innerClasses;
 		mojoData.mojoAnnotationValues = nonNull(this.invisibleAnnotations).stream()
 				.filter(n -> Constants.MOJO_ANNOTATION.equals(Type.getType(n.desc))).findFirst().map(AsmUtil::toMap)
 				.orElse(emptyMap());

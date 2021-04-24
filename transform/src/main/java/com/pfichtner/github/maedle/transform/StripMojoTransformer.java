@@ -6,8 +6,9 @@ import static com.pfichtner.github.maedle.transform.Constants.MOJO_ANNOTATION;
 import static com.pfichtner.github.maedle.transform.Constants.isMavenException;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.JAVA_LANG_OBJECT;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.findNode;
-import static com.pfichtner.github.maedle.transform.util.AsmUtil.isType;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.isAload;
+import static com.pfichtner.github.maedle.transform.util.AsmUtil.isType;
+import static com.pfichtner.github.maedle.transform.util.AsmUtil.mapType;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.objectTypeToInternal;
 import static com.pfichtner.github.maedle.transform.util.CollectionUtil.nonNull;
 import static java.util.stream.Collectors.toList;
@@ -64,7 +65,7 @@ public class StripMojoTransformer extends ClassNode {
 			} else if (MAVEN_MOJO_EXECUTION_EXCEPTION.equals(Type.getObjectType(internalName))) {
 				return "org/gradle/api/tasks/TaskExecutionException";
 			} else {
-				return internalName;
+				return null;
 			}
 		}
 	};
@@ -89,7 +90,7 @@ public class StripMojoTransformer extends ClassNode {
 		this.remapper = remapper == null ? defaultRemapper : remapper;
 		return this;
 	}
-	
+
 	private Predicate<FieldNode> isIn(List<FieldNode> fieldNodes) {
 		return f1 -> {
 			return fieldNodes.stream().anyMatch(f2 -> //
@@ -175,9 +176,7 @@ public class StripMojoTransformer extends ClassNode {
 		return new ClassRemapper(new ClassRemapper(classVisitor, new Remapper() {
 			@Override
 			public String map(String internalName) {
-				return Type.getObjectType(internalName).equals(mojoData.getMojoType()) //
-						? mojoClass.getInternalName() //
-						: internalName;
+				return mapType(mojoData.getMojoType(), mojoClass, internalName);
 			}
 		}), remapper);
 	}

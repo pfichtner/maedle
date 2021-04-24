@@ -5,6 +5,7 @@ import static com.pfichtner.github.maedle.transform.Constants.isParameterAnnotat
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.JAVA_LANG_OBJECT;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.isConstructor;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.makePublic;
+import static com.pfichtner.github.maedle.transform.util.AsmUtil.mapType;
 import static com.pfichtner.github.maedle.transform.util.CollectionUtil.nonNull;
 import static org.objectweb.asm.Opcodes.ASM9;
 import static org.objectweb.asm.Opcodes.PUTFIELD;
@@ -12,6 +13,7 @@ import static org.objectweb.asm.tree.AbstractInsnNode.FIELD_INSN;
 import static org.objectweb.asm.tree.AbstractInsnNode.METHOD_INSN;
 
 import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.ClassRemapper;
 import org.objectweb.asm.commons.Remapper;
 import org.objectweb.asm.tree.AbstractInsnNode;
@@ -83,14 +85,14 @@ public class MojoToExtensionTransformer extends ClassNode {
 		}
 	}
 
-	public MojoToExtensionTransformer(ClassVisitor classVisitor, String newClassName, MojoData mojoData) {
+	public MojoToExtensionTransformer(ClassVisitor classVisitor, Type newType, MojoData mojoData) {
 		super(ASM9);
 		this.classVisitor = new ClassRemapper(classVisitor, new Remapper() {
 			@Override
 			public String map(String internalName) {
-				return internalName.equals(MojoToExtensionTransformer.this.name) ? newClassName
-						: super.map(internalName);
+				return mapType(Type.getObjectType(MojoToExtensionTransformer.this.name), newType, internalName);
 			}
+
 		});
 		this.mojoData = mojoData;
 	}

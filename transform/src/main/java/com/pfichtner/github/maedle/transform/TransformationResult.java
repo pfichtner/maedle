@@ -30,8 +30,7 @@ public class TransformationResult {
 
 	private byte[] extension() throws IOException {
 		ClassWriter cw = newClassWriter();
-		read(new MojoToExtensionTransformer(cw, parameters.getExtensionClass().getInternalName(),
-				parameters.getMojoData()));
+		read(new MojoToExtensionTransformer(cw, parameters.getExtensionClass(), parameters.getMojoData()));
 		return cw.toByteArray();
 	}
 
@@ -39,7 +38,7 @@ public class TransformationResult {
 		new ClassReader(parameters.getMojo()).accept(cv, EXPAND_FRAMES);
 	}
 
-	private ClassWriter newClassWriter() {
+	private static ClassWriter newClassWriter() {
 		return new ClassWriter(COMPUTE_MAXS);
 	}
 

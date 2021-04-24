@@ -20,7 +20,8 @@ public class TestMojoMapIT {
 		PluginInfo pluginInfo = new PluginInfo("com.github.pfichtner.maedle.mojotogradle", "greeting");
 		createProjectSettingsFile(testProjectDir);
 		createProjectBuildFile(testProjectDir, pluginInfo, configuration2());
-		File pluginJar = transformMojoAndWriteJar(TestMojoMap.class, testProjectDir, pluginInfo);
+		File pluginJar = transformMojoAndWriteJar(testProjectDir, pluginInfo, TestMojoMap.class,
+				TestMojoMap.MyObject.class);
 		try (GradleTestKit testKit = new GradleTestKit(testProjectDir.getAbsolutePath())) {
 			String stdOut = testKit.executeTask(pluginJar, TestMojoMap.GOAL);
 			assertThat(stdOut).contains("one * 42 = 42").contains("two * 42 = 84").contains("three * 42 = 126");

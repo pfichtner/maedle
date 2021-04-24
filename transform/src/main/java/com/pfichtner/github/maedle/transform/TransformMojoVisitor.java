@@ -5,6 +5,7 @@ import static com.pfichtner.github.maedle.transform.TransformationParameters.fro
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.append;
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.Files.copy;
+import static java.util.stream.Collectors.toList;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -14,11 +15,18 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.List;
 import java.util.function.Function;
 
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.commons.ClassRemapper;
+import org.objectweb.asm.commons.Remapper;
+import org.objectweb.asm.tree.InnerClassNode;
 
 import com.github.pfichtner.maedle.transform.util.jar.PluginInfo;
+import com.pfichtner.github.maedle.transform.util.AsmUtil;
 
 public class TransformMojoVisitor extends SimpleFileVisitor<Path> {
 
@@ -54,8 +62,7 @@ public class TransformMojoVisitor extends SimpleFileVisitor<Path> {
 				Type originalMojoType = parameters.getMojoClass();
 				PluginInfo pluginInfo = getPluginInfo(originalMojoType);
 				if (pluginInfo != null) {
-					transformTo(resourceAddable, parameters.withMojoClass(append(originalMojoType, "Rewritten")),
-							append(originalMojoType, "GradlePlugin"), pluginInfo);
+					transformTo(file, resourceAddable, parameters, originalMojoType, pluginInfo);
 				}
 			}
 		}
@@ -67,20 +74,59 @@ public class TransformMojoVisitor extends SimpleFileVisitor<Path> {
 		return infoProvider.apply(originalMojoType);
 	}
 
-	public static void transformTo(ResourceAddable addable, TransformationParameters parameters, Type pluginType,
-			PluginInfo pluginInfo) throws IOException {
+	private static void transformTo(Path file, ResourceAddable resourceAddable, TransformationParameters parametersArg,
+			Type originalMojoType, PluginInfo pluginInfo) throws IOException {
+		TransformationParameters parameters = parametersArg.withMojoClass(append(originalMojoType, "Rewritten"));
+		Type pluginType = append(originalMojoType, "GradlePlugin");
 		TransformationResult result = new TransformationResult(parameters);
 		Type mojoType = parameters.getMojoClass();
 
-		addable.add(result.getTransformedMojo(), toPath(mojoType));
-		addable.add(result.getExtension(), toPath(parameters.getExtensionClass()));
+		List<InnerClassNode> innerClasses = parameters.getMojoData().getInnerClasses().collect(toList());
 
-		addable.add(createPlugin(pluginType, parameters.getExtensionClass(), mojoType, taskName(parameters),
+		resourceAddable.add(result.getTransformedMojo(), toPath(mojoType));
+		for (InnerClassNode innerClassNode : innerClasses) {
+			readInnerClass(resourceAddable, file, innerClassNode, parameters.getMojoClass());
+		}
+
+		resourceAddable.add(result.getExtension(), toPath(parameters.getExtensionClass()));
+		for (InnerClassNode innerClassNode : innerClasses) {
+			readInnerClass(resourceAddable, file, innerClassNode, parameters.getExtensionClass());
+		}
+
+		resourceAddable.add(createPlugin(pluginType, parameters.getExtensionClass(), mojoType, taskName(parameters),
 				pluginInfo.extensionName), toPath(pluginType));
 
 		// TODO we should check if file already exists and append content if
-		addable.add(("implementation-class=" + pluginType.getInternalName().replace('/', '.')).getBytes(),
+		resourceAddable.add(("implementation-class=" + pluginType.getInternalName().replace('/', '.')).getBytes(),
 				"META-INF/gradle-plugins/" + pluginInfo.pluginId + ".properties");
+	}
+
+	private static void readInnerClass(ResourceAddable resourceAddable, Path file, InnerClassNode innerClassNode,
+			Type newOuter) throws IOException {
+		Path directory = file.subpath(0, file.getNameCount() - 1);
+		Path oldInner = directory
+				.resolve(simpleName(innerClassNode.outerName) + "$" + innerClassNode.innerName + ".class");
+		byte[] transformed = transform(read(oldInner), Type.getObjectType(innerClassNode.outerName), newOuter);
+		resourceAddable.add(transformed,
+				directory.resolve(simpleName(newOuter.getInternalName()) + "$" + innerClassNode.innerName + ".class")
+						.toString());
+	}
+
+	private static String simpleName(String name) {
+		int lastSlash = name.lastIndexOf('/');
+		return lastSlash >= 0 ? name.substring(lastSlash + 1) : name;
+	}
+
+	private static byte[] transform(byte[] classContent, Type oldOuter, Type newOuter) {
+		ClassWriter cw = new ClassWriter(0);
+		ClassReader cr = new ClassReader(classContent);
+		cr.accept(new ClassRemapper(cw, new Remapper() {
+			@Override
+			public String mapType(String internalName) {
+				return AsmUtil.mapType(oldOuter, newOuter, internalName);
+			}
+		}), 0);
+		return cw.toByteArray();
 	}
 
 	private static String toPath(Type type) {
