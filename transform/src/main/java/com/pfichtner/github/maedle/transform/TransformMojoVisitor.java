@@ -84,14 +84,9 @@ public class TransformMojoVisitor extends SimpleFileVisitor<Path> {
 		List<InnerClassNode> innerClasses = parameters.getMojoData().getInnerClasses().collect(toList());
 
 		resourceAddable.add(result.getTransformedMojo(), toPath(mojoType));
-		for (InnerClassNode innerClassNode : innerClasses) {
-			readInnerClass(resourceAddable, file, innerClassNode, parameters.getMojoClass());
-		}
 
 		resourceAddable.add(result.getExtension(), toPath(parameters.getExtensionClass()));
-		for (InnerClassNode innerClassNode : innerClasses) {
-			readInnerClass(resourceAddable, file, innerClassNode, parameters.getExtensionClass());
-		}
+		addInnerClasses(resourceAddable, file, parameters, innerClasses, parameters.getExtensionClass());
 
 		resourceAddable.add(createPlugin(pluginType, parameters.getExtensionClass(), mojoType, taskName(parameters),
 				pluginInfo.extensionName), toPath(pluginType));
@@ -99,6 +94,13 @@ public class TransformMojoVisitor extends SimpleFileVisitor<Path> {
 		// TODO we should check if file already exists and append content if
 		resourceAddable.add(("implementation-class=" + pluginType.getInternalName().replace('/', '.')).getBytes(),
 				"META-INF/gradle-plugins/" + pluginInfo.pluginId + ".properties");
+	}
+
+	private static void addInnerClasses(ResourceAddable resourceAddable, Path file, TransformationParameters parameters,
+			List<InnerClassNode> innerClasses, Type newOuter) throws IOException {
+		for (InnerClassNode innerClassNode : innerClasses) {
+			readInnerClass(resourceAddable, file, innerClassNode, newOuter);
+		}
 	}
 
 	private static void readInnerClass(ResourceAddable resourceAddable, Path file, InnerClassNode innerClassNode,

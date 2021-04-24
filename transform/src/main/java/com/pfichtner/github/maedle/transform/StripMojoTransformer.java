@@ -16,6 +16,7 @@ import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ALOAD;
 import static org.objectweb.asm.Opcodes.ASM9;
+import static org.objectweb.asm.Opcodes.CHECKCAST;
 import static org.objectweb.asm.Opcodes.GETFIELD;
 import static org.objectweb.asm.Opcodes.INVOKEINTERFACE;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
@@ -25,6 +26,7 @@ import static org.objectweb.asm.Opcodes.PUTFIELD;
 import static org.objectweb.asm.Opcodes.RETURN;
 import static org.objectweb.asm.tree.AbstractInsnNode.FIELD_INSN;
 import static org.objectweb.asm.tree.AbstractInsnNode.METHOD_INSN;
+import static org.objectweb.asm.tree.AbstractInsnNode.TYPE_INSN;
 
 import java.util.List;
 import java.util.Objects;
@@ -38,8 +40,10 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.InnerClassNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TypeInsnNode;
 
 import com.pfichtner.github.maedle.transform.MojoClassAnalyser.MojoData;
 import com.pfichtner.github.maedle.transform.util.AsmUtil;
@@ -116,9 +120,16 @@ public class StripMojoTransformer extends ClassNode {
 
 		methods.forEach(this::mapMavenToGradleLogging);
 		methods.forEach(this::replaceFieldAccess);
+		methods.forEach(this::replaceInnerClassAccess);
 		methods.forEach(m -> m.exceptions = removeMavenExceptions(m.exceptions));
 
+		innerClasses.removeIf(outerIsThis());
+
 		accept(remap(classVisitor));
+	}
+
+	private Predicate<InnerClassNode> outerIsThis() {
+		return ic -> name.equals(ic.outerName);
 	}
 
 	private void replaceFieldAccess(MethodNode methodNode) {
@@ -130,6 +141,24 @@ public class StripMojoTransformer extends ClassNode {
 					methodNode.instructions.insert(aload0, new FieldInsnNode(GETFIELD, fin.owner,
 							FIELD_NAME_FOR_EXTENSION_INSTANCE, objectTypeToInternal(extensionClass).getDescriptor()));
 					fin.owner = extensionClass.getInternalName();
+				}
+			}
+		});
+	}
+
+	private void replaceInnerClassAccess(MethodNode methodNode) {
+		methodNode.instructions.forEach(n -> {
+			if (n.getType() == FIELD_INSN) {
+				FieldInsnNode fin = (FieldInsnNode) n;
+				this.innerClasses.stream().filter(ic -> fin.owner.equals(ic.outerName)).findFirst().ifPresent(ic -> {
+					fin.owner = AsmUtil.innerClass(extensionClass.getInternalName(), ic.innerName);
+				});
+			} else if (n.getType() == TYPE_INSN) {
+				TypeInsnNode tin = (TypeInsnNode) n;
+				if (tin.getOpcode() == CHECKCAST) {
+					this.innerClasses.stream().filter(ic -> tin.desc.equals(ic.outerName)).findFirst().ifPresent(ic -> {
+						tin.desc = AsmUtil.innerClass(extensionClass.getInternalName(), ic.innerName);
+					});
 				}
 			}
 		});

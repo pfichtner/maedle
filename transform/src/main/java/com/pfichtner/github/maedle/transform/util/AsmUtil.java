@@ -101,6 +101,15 @@ public final class AsmUtil {
 		return outer + "$" + inner;
 	}
 
+	/**
+	 * Maps oldType to newType even if <code>typeToMap</code> is an innerclass
+	 * (a/b/X$Y)
+	 * 
+	 * @param oldType
+	 * @param newType
+	 * @param typeToMap
+	 * @return mapped type
+	 */
 	public static String mapType(Type oldType, Type newType, String typeToMap) {
 		String[] split = trySplitOuterInnerClass(typeToMap);
 		if (split != null && Type.getObjectType(split[0]).equals(oldType)) {
