@@ -6,6 +6,7 @@ import static com.pfichtner.github.maedle.transform.Constants.MOJO_ANNOTATION;
 import static com.pfichtner.github.maedle.transform.Constants.isMavenException;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.JAVA_LANG_OBJECT;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.findNode;
+import static com.pfichtner.github.maedle.transform.util.AsmUtil.innerClass;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.isAload;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.isType;
 import static com.pfichtner.github.maedle.transform.util.AsmUtil.mapType;
@@ -30,6 +31,7 @@ import static org.objectweb.asm.tree.AbstractInsnNode.TYPE_INSN;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.objectweb.asm.ClassVisitor;
@@ -149,19 +151,25 @@ public class StripMojoTransformer extends ClassNode {
 	private void replaceInnerClassAccess(MethodNode methodNode) {
 		methodNode.instructions.forEach(n -> {
 			if (n.getType() == FIELD_INSN) {
-				FieldInsnNode fin = (FieldInsnNode) n;
-				this.innerClasses.stream().filter(ic -> fin.owner.equals(ic.outerName)).findFirst().ifPresent(ic -> {
-					fin.owner = AsmUtil.innerClass(extensionClass.getInternalName(), ic.innerName);
-				});
-			} else if (n.getType() == TYPE_INSN) {
-				TypeInsnNode tin = (TypeInsnNode) n;
-				if (tin.getOpcode() == CHECKCAST) {
-					this.innerClasses.stream().filter(ic -> tin.desc.equals(ic.outerName)).findFirst().ifPresent(ic -> {
-						tin.desc = AsmUtil.innerClass(extensionClass.getInternalName(), ic.innerName);
-					});
-				}
+				replaceOwnerIfIsInnerClass((FieldInsnNode) n);
+			} else if (n.getType() == TYPE_INSN && n.getOpcode() == CHECKCAST) {
+				replaceDescIfIsInnerClass((TypeInsnNode) n);
 			}
 		});
+	}
+
+	private void replaceOwnerIfIsInnerClass(FieldInsnNode node) {
+		replaceIf(ic -> ic.name.equals(node.owner) && ic.outerName.equals(name),
+				ic -> node.owner = innerClass(extensionClass.getInternalName(), ic.innerName));
+	}
+
+	private void replaceDescIfIsInnerClass(TypeInsnNode node) {
+		replaceIf(ic -> ic.name.equals(node.desc) && ic.outerName.equals(name),
+				ic -> node.desc = innerClass(extensionClass.getInternalName(), ic.innerName));
+	}
+
+	private void replaceIf(Predicate<InnerClassNode> predicate, Consumer<InnerClassNode> consumer) {
+		this.innerClasses.stream().filter(predicate).findFirst().ifPresent(consumer);
 	}
 
 	private void mapMavenToGradleLogging(MethodNode methodNode) {
