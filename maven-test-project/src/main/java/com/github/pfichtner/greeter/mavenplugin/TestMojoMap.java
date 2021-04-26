@@ -30,8 +30,9 @@ public class TestMojoMap extends AbstractMojo {
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		data.entrySet().stream().sorted(comparing(Entry<String, Integer>::getValue))
 				.forEach(e -> System.out.println(e.getKey() + " * 42 = " + e.getValue() * 42));
-		data2.entrySet().stream().forEach(
-				e -> System.out.println(e.getKey() + " " + e.getValue().number + " isPrime " + e.getValue().isPrime));
+		System.out.println(data2);
+//		data2.entrySet().stream().forEach(
+//				e -> System.out.println(e.getKey() + " " + e.getValue().number + " isPrime " + e.getValue().isPrime));
 	}
 
 }
